@@ -1,0 +1,11 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# tmp file
+.cache
+*~
+
+# data files
+*.npy
+
