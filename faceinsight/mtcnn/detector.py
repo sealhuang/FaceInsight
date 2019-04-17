@@ -21,11 +21,15 @@ def detect_faces(image, min_face_size=20.0, thresholds=[0.6, 0.7, 0.8],
         two float numpy arrays of shapes [n_boxes, 4] and [n_boxes, 10],
         bounding boxes and facial landmarks.
     """
+    # device config
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     # load models
-    pnet = PNet()
-    rnet = RNet()
-    onet = ONet()
+    pnet = PNet().to(device)
+    rnet = RNet().to(device)
+    onet = ONet().to(device)
+    pnet.eval()
+    rnet.eval()
     onet.eval()
 
     # build an image pyramid
@@ -77,11 +81,11 @@ def detect_faces(image, min_face_size=20.0, thresholds=[0.6, 0.7, 0.8],
     # STAGE 2
 
     img_boxes = get_image_boxes(bounding_boxes, image, size=24)
-    img_boxes = torch.FloatTensor(img_boxes)
+    img_boxes = torch.FloatTensor(img_boxes).to(device)
     with torch.no_grad():
         output = rnet(img_boxes)
-    offsets = output[0].data.numpy()  # shape [n_boxes, 4]
-    probs = output[1].data.numpy()  # shape [n_boxes, 2]
+    offsets = output[0].cpu().data.numpy()  # shape [n_boxes, 4]
+    probs = output[1].cpu().data.numpy()  # shape [n_boxes, 2]
 
     keep = np.where(probs[:, 1] > thresholds[1])[0]
     bounding_boxes = bounding_boxes[keep]
@@ -99,12 +103,12 @@ def detect_faces(image, min_face_size=20.0, thresholds=[0.6, 0.7, 0.8],
     img_boxes = get_image_boxes(bounding_boxes, image, size=48)
     if len(img_boxes) == 0: 
         return [], []
-    img_boxes = torch.FloatTensor(img_boxes)
+    img_boxes = torch.FloatTensor(img_boxes).to(device)
     with torch.no_grad():
         output = onet(img_boxes)
-    landmarks = output[0].data.numpy()  # shape [n_boxes, 10]
-    offsets = output[1].data.numpy()  # shape [n_boxes, 4]
-    probs = output[2].data.numpy()  # shape [n_boxes, 2]
+    landmarks = output[0].cpu().data.numpy()  # shape [n_boxes, 10]
+    offsets = output[1].cpu().data.numpy()  # shape [n_boxes, 4]
+    probs = output[2].cpu().data.numpy()  # shape [n_boxes, 2]
 
     keep = np.where(probs[:, 1] > thresholds[2])[0]
     bounding_boxes = bounding_boxes[keep]

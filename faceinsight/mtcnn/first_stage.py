@@ -6,6 +6,9 @@ from PIL import Image
 import torch
 from .box_utils import nms, _preprocess
 
+# device config
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
 def run_first_stage(image, net, scale, threshold):
     """Run P-Net, generate bounding boxes, and do NMS.
 
@@ -29,11 +32,11 @@ def run_first_stage(image, net, scale, threshold):
     img = image.resize((int(sw), int(sh)), Image.BILINEAR)
     img = np.asarray(img, 'float32')
 
-    img = torch.FloatTensor(_preprocess(img))
+    img = torch.FloatTensor(_preprocess(img)).to(device)
     with torch.no_grad():
         output = net(img)
-    probs = output[1].data.numpy()[0, 1, :, :]
-    offsets = output[0].data.numpy()
+    probs = output[1].cpu().data.numpy()[0, 1, :, :]
+    offsets = output[0].cpu().data.numpy()
     # probs: probability of a face at each sliding window
     # offsets: transformations to true bounding boxes
 
