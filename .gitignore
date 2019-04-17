@@ -4,6 +4,7 @@ __pycache__/
 
 # tmp file
 .cache
+.DS_Store
 *~
 
 # data files

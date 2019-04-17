@@ -1,5 +1,6 @@
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 
+from __future__ import division
 import numpy as np
 import torch
 from .get_nets import PNet, RNet, ONet
@@ -21,13 +22,13 @@ def detect_faces(image, min_face_size=20.0, thresholds=[0.6, 0.7, 0.8],
         bounding boxes and facial landmarks.
     """
 
-    # LOAD MODELS
+    # load models
     pnet = PNet()
     rnet = RNet()
     onet = ONet()
     onet.eval()
 
-    # BUILD AN IMAGE PYRAMID
+    # build an image pyramid
     width, height = image.size
     min_length = min(height, width)
 
