@@ -14,6 +14,7 @@ from torchvision import transforms
 from torch.utils.data.sampler import SubsetRandomSampler
 from faceinsight.models.face_activation import Arcface, l2_norm
 
+
 class CNNNet1(nn.Module):
     def __init__(self):
         super(CNNNet1, self).__init__()
@@ -39,6 +40,24 @@ class CNNNet1(nn.Module):
         x = self.fc1_bn(x)
         #x = self.drop2(x)
         return l2_norm(x)
+
+
+def separate_bn_paras(modules):
+    paras_only_bn = []
+    paras_wo_bn = []
+    for layer in modules.modules():
+        if 'CNNNet1' in str(layer.__class__):
+            continue
+        if 'container' in str(layer.__class__):
+            continue
+        else:
+            if 'batchnorm' in str(layer.__class__):
+                for p in layer.parameters():
+                    paras_only_bn.append(p)
+            else:
+                for p in layer.parameters():
+                    paras_wo_bn.append(p)
+    return paras_only_bn, paras_wo_bn
 
 
 def get_img_stats(csv_file, face_dir, batch_size, num_workers, pin_memory):
@@ -214,8 +233,13 @@ def run_model(random_seed):
     archead = Arcface(embedding_size=512, class_num=2, s=64., m=0.5).to(device)
 
     #optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
-    print(model.parameters()+archead.parameters())
-    optimizer = optim.Adam(model.parameters()+archead.parameters(), lr=0.001)
+    paras_only_bn, paras_wo_bn = separate_bn_paras(model)
+    print([p.data.shape for p in paras_only_bn])
+    print([p.data.shape for p in paras_wo_bn])
+    optimizer = optim.Adam([{'params': paras_wo_bn + [archead.kernel],
+                             'weight_decay': 5e-4},
+                            {'params': paras_only_bn}],
+                           lr=0.001)
 
     test_acc = []
     for epoch in range(1, 51):
