@@ -4,7 +4,7 @@
 
 import os
 import random
-import functional_extra as F
+import .functional as F
 
 class RandomGaussianBlur(object):
     """Randomly Gaussian-blur the image with a random radius (default: of 1.0 to
