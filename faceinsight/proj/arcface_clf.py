@@ -12,7 +12,7 @@ import torch.optim as optim
 from bnudataset import MBTIFaceDataset
 from torchvision import transforms
 from torch.utils.data.sampler import SubsetRandomSampler
-from faceinsight.model.face_activation import Arcface, l2_norm
+from faceinsight.models.face_activation import Arcface, l2_norm
 
 class CNNNet1(nn.Module):
     def __init__(self):
@@ -211,7 +211,7 @@ def run_model(random_seed):
                                           pin_memory=True)
 
     model = CNNNet1().to(device)
-    archead = Arcface(embedding_size=512, class_num=2, s=64., m-0.5).to(device)
+    archead = Arcface(embedding_size=512, class_num=2, s=64., m=0.5).to(device)
 
     #optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
     print(model.parameters()+archead.parameters())
@@ -233,7 +233,7 @@ def main():
     seeds = [10]
     #random_seed = np.random.randint(100)
     for i in seeds:
-        #run_model(i)
+        run_model(i)
 
 
 if __name__=='__main__':
