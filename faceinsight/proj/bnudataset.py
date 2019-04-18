@@ -20,8 +20,8 @@ def check_factor_range_validity(factor_range):
     else:
         raise(RuntimeError('List of factor range is required.'))
 
-def make_dataset(csv_info, img_dir, target_idx,
-                 factor_range=None, range2group=False):
+def make_dataset(csv_info, img_dir, target_idx, factor_range=None,
+                 range2group=False, gender2group=False):
     samples = []
 
     # target preprocessing
@@ -29,15 +29,33 @@ def make_dataset(csv_info, img_dir, target_idx,
         # check the validity of factor range
         check_factor_range_validity(factor_range)
         # determine the target type
-        if isinstance(range2group, bool) and range2group:
-            if len(factor_range)>1:
-                label_dict = dict(zip([str(t) for t in factor_range],
-                                      range(len(factor_range))))
+        if len(factor_range)>1:
+            if isinstance(range2group, bool) and range2group:
+                if gender2group:
+                    label_dict = dict(zip([str(t)+'_'+g for t in factor_range
+                                            for g in ['male', 'female']],
+                                          range(2*len(factor_range))))
+                    print(label_dict)
+                else:
+                    label_dict = dict(zip([str(t) for t in factor_range],
+                                          range(len(factor_range))))
+                    print(label_dict)
+            elif gender2group:
+                label_dict = {'male': 0, 'female': 1}
                 print(label_dict)
             else:
-                raise(RuntimeError('Only one factor range in the list.'))
+                print('Non-categorical target output.')
         else:
-            print('Non-categorical target output.')
+            if isinstance(range2group, bool) and range2group:
+                raise(RuntimeError('Only one factor range in the list.'))
+            elif gender2group:
+                label_dict = {'male': 0, 'female': 1}
+                print(label_dict)
+            else:
+                print('Non-categorical target output.')
+    elif gender2group:
+        label_dict = {'male': 0, 'female': 1}
+        print(label_dict)
 
     # sample selection
     for line in csv_info:
@@ -46,17 +64,25 @@ def make_dataset(csv_info, img_dir, target_idx,
             print('Non-exist image: %s'%(img))
             continue
         v = float(line[target_idx])
+        g = line[1]
         if factor_range:
             for t in factor_range:
                 if v>=t[0] and v<t[1]:
-                    if range2group:
+                    if range2group and gender2group:
+                        v = label_dict[str(t)+'_'+g]
+                    elif range2group:
                         v = label_dict[str(t)]
+                    elif gender2group:
+                        v = label_dict[g]
                     samples.append((img, v))
                     break
+        elif gender2group:
+            v = label_dict[g]
+            samples.append((img, v))
         else:
             samples.append((img, v))
 
-    if factor_range and len(factor_range)>1 and range2group:
+    if range2group or gender2group:
         for k in label_dict:
             k_num = 0
             for line in samples:
@@ -84,7 +110,7 @@ class MBTIFaceDataset(Dataset):
 
     """
     def __init__(self, csv_file, img_dir, factor_name, gender_filter=None,
-                 factor_range=None, range2group=False,
+                 gender2group=False, factor_range=None, range2group=False,
                  transform=None, target_transform=None):
         # read csv info and get dataset
         csv_info = open(csv_file).readlines()
@@ -98,7 +124,8 @@ class MBTIFaceDataset(Dataset):
             csv_info = [line for line in csv_info if line[1]==gender_filter]
         samples = make_dataset(csv_info, img_dir, target_idx,
                                factor_range=factor_range,
-                               range2group=range2group)
+                               range2group=range2group,
+                               gender2group=gender2group)
         if len(samples)==0:
             raise(RuntimeError('Found 0 files in face folder.'))
 
