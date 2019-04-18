@@ -56,6 +56,14 @@ def make_dataset(csv_info, img_dir, target_idx,
         else:
             samples.append((img, v))
 
+    if factor_range and len(factor_range)>1 and range2group:
+        for k in label_dict:
+            k_num = 0
+            for line in samples:
+                if line[1]==label_dict[k]:
+                    k_num += 1
+            print('%s : %s items'%(k, k_num))
+
     return samples
 
 class MBTIFaceDataset(Dataset):
