@@ -24,7 +24,7 @@ class CNNNet1(nn.Module):
         self.conv4 = nn.Conv2d(96, 96, kernel_size=3, stride=2)
         self.conv4_bn = nn.BatchNorm2d(96)
         self.fc1 = nn.Linear(96, 64)
-        #self.drop2 = nn.Dropout(p=0.5)
+        self.drop1 = nn.Dropout(p=0.5)
         self.output = nn.Linear(64, class_num)
 
     def forward(self, x):
@@ -39,7 +39,7 @@ class CNNNet1(nn.Module):
         x = self.conv4_bn(x)
         x = x.view(-1, 1*1*96)
         x = F.relu(self.fc1(x))
-        #x = self.drop2(x)
+        x = self.drop1(x)
         return F.log_softmax(self.output(x), dim=1)
 
 
@@ -113,23 +113,24 @@ def load_data(data_dir, batch_size, random_seed, test_size=0.1,
     #transforms.RandomHorizontalFlip(),
     #transforms.RandomCrop(224),
     #transforms.RandomResizedCrop(224, scale=(0.7, 0.9), ratio=(1.0, 1.0)),
-    train_transform = transforms.Compose([transforms.ToTensor(),
+    train_transform = transforms.Compose([transforms.RandomResizedCrop(224, scale=(0.8, 0.95), ratio=(1.0, 1.0)),
+                                          transforms.ToTensor(),
                                           normalize])
     test_transform = transforms.Compose([transforms.ToTensor(),
                                          normalize])
 
     # load the dataset
-    train_dataset = MBTIFaceDataset(csv_file, face_dir, 'EI',
+    train_dataset = MBTIFaceDataset(csv_file, face_dir, 'JP',
                                     gender_filter=None,
-                                    factor_range=[(0, 8), (13, 22)],
+                                    factor_range=[(0, 11), (18, 23)],
                                     range2group=True,
-                                    gender2group=True,
+                                    gender2group=False,
                                     transform=train_transform)
-    test_dataset = MBTIFaceDataset(csv_file, face_dir, 'EI',
+    test_dataset = MBTIFaceDataset(csv_file, face_dir, 'JP',
                                    gender_filter=None,
-                                   factor_range=[(0, 8), (13, 22)],
+                                   factor_range=[(0, 11), (18, 23)],
                                    range2group=True,
-                                   gender2group=True,
+                                   gender2group=False,
                                    transform=test_transform)
 
     data_num = len(train_dataset)
@@ -184,17 +185,19 @@ def test(model, device, test_loader):
             # sum up batch loss
             test_loss += F.nll_loss(output, target, reduction='sum').item()
             # get the index of the max log-probability
-            pred = thetas.argmax(dim=1, keepdim=False)
+            pred = output.argmax(dim=1, keepdim=False)
             #correct += pred.eq(target.view_as(pred)).sum().item()
             correct += pred.eq(target).sum().item()
             all_pred.append(pred.cpu().data.numpy())
             all_true.append(target.cpu().data.numpy())
 
     test_loss /= len(test_loader.sampler.indices)
-    print('Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.1f}%)\n'.format(
+    print('Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.1f}%)'.format(
         test_loss, correct, len(test_loader.sampler.indices),
         100.*correct/len(test_loader.sampler.indices)))
-    print(confusion_matrix(np.concatenate(all_true), np.concatenate(all_pred)))
+    cm = confusion_matrix(np.concatenate(all_true), np.concatenate(all_pred))
+    print(cm*1.0 / cm.sum(axis=1, keepdims=True))
+    print('\n')
 
     return 100.*correct/len(test_loader.sampler.indices)
 
@@ -214,7 +217,7 @@ def run_model(random_seed):
                                           num_workers=16,
                                           pin_memory=True)
 
-    model = CNNNet1(4).to(device)
+    model = CNNNet1(2).to(device)
 
     #optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
     optimizer = optim.Adam(model.parameters(), lr=0.001)
