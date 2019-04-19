@@ -42,6 +42,31 @@ class CNNNet1(nn.Module):
         x = self.drop1(x)
         return F.log_softmax(self.output(x), dim=1)
 
+class CNNNet2(nn.Module):
+    def __init__(self, class_num):
+        super(CNNNet2, self).__init__()
+        self.conv1 = nn.Conv2d(3, 48, kernel_size=11, stride=3)
+        self.conv2 = nn.Conv2d(48, 96, kernel_size=3, stride=3)
+        self.conv3 = nn.Conv2d(96, 96, kernel_size=3, stride=3)
+        self.conv3_bn = nn.BatchNorm2d(96)
+        self.fc1 = nn.Linear(96, 96)
+        self.drop1 = nn.Dropout(p=0.5)
+        self.output = nn.Linear(96, class_num)
+
+    def forward(self, x):
+        """Pass the input tensor through each of our operations."""
+        x = F.relu(self.conv1(x))
+        x = F.max_pool2d(x, 2, 2)
+        x = F.relu(self.conv2(x))
+        x = F.max_pool2d(x, 2, 2)
+        x = F.relu(self.conv3(x))
+        x = F.max_pool2d(x, 2, 2)
+        x = self.conv3_bn(x)
+        x = x.view(-1, 1*1*96)
+        x = F.relu(self.fc1(x))
+        x = self.drop1(x)
+        return F.log_softmax(self.output(x), dim=1)
+
 
 def get_img_stats(csv_file, face_dir, batch_size, num_workers, pin_memory):
     """Get mean and std. of the images."""
@@ -217,7 +242,7 @@ def run_model(random_seed):
                                           num_workers=16,
                                           pin_memory=True)
 
-    model = CNNNet1(2).to(device)
+    model = CNNNet2(2).to(device)
 
     #optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
     optimizer = optim.Adam(model.parameters(), lr=0.001)
