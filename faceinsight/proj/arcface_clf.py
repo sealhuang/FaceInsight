@@ -9,6 +9,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from sklearn.metrics import confusion_matrix
 from bnudataset import MBTIFaceDataset
 from torchvision import transforms
 from torch.utils.data.sampler import SubsetRandomSampler
@@ -91,7 +92,6 @@ class CNNNet3(nn.Module):
         x = l2_norm(x)
         #x = self.drop2(x)
         return x
-
 
 
 def separate_bn_paras(modules):
@@ -250,6 +250,8 @@ def test(model, archead, device, test_loader):
     model.eval()
     test_loss = 0
     correct = 0
+    all_pred = []
+    all_true = []
     with torch.no_grad():
         for data, target in test_loader:
             data, target = data.to(device), target.to(device)
@@ -266,6 +268,10 @@ def test(model, archead, device, test_loader):
             pred = thetas.argmax(dim=1, keepdim=False)
             #correct += pred.eq(target.view_as(pred)).sum().item()
             correct += pred.eq(target).sum().item()
+            all_pred.append(pred.cpu().data.numpy())
+            all_true.append(target.cpu().data.numpy())
+   
+    print(confusion_matrix(np.concatenate(all_true), np.concatenate(all_pred)))
 
     test_loss /= len(test_loader.sampler.indices)
     print('Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.1f}%)\n'.format(
