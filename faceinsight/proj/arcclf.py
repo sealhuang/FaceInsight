@@ -194,15 +194,17 @@ def load_data(data_dir, batch_size, random_seed, test_size=0.1,
                                          normalize])
 
     # load the dataset
-    train_dataset = MBTIFaceDataset(csv_file, face_dir, 'SN',
+    train_dataset = MBTIFaceDataset(csv_file, face_dir, 'EI',
                                     gender_filter=None,
-                                    factor_range=[(0, 12), (17, 27)],
+                                    factor_range=[(0, 8), (13, 22)],
                                     range2group=True,
+                                    gender2group=True,
                                     transform=train_transform)
-    test_dataset = MBTIFaceDataset(csv_file, face_dir, 'SN',
+    test_dataset = MBTIFaceDataset(csv_file, face_dir, 'EI',
                                    gender_filter=None,
-                                   factor_range=[(0, 12), (17, 27)],
+                                   factor_range=[(0, 8), (13, 22)],
                                    range2group=True,
+                                   gender2group=True,
                                    transform=test_transform)
 
     data_num = len(train_dataset)
@@ -270,13 +272,12 @@ def test(model, archead, device, test_loader):
             correct += pred.eq(target).sum().item()
             all_pred.append(pred.cpu().data.numpy())
             all_true.append(target.cpu().data.numpy())
-   
-    print(confusion_matrix(np.concatenate(all_true), np.concatenate(all_pred)))
 
     test_loss /= len(test_loader.sampler.indices)
     print('Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.1f}%)\n'.format(
         test_loss, correct, len(test_loader.sampler.indices),
         100.*correct/len(test_loader.sampler.indices)))
+    print(confusion_matrix(np.concatenate(all_true), np.concatenate(all_pred)))
 
     return 100.*correct/len(test_loader.sampler.indices)
 
@@ -298,7 +299,7 @@ def run_model(random_seed):
 
     #model = CNNNet1().to(device)
     model = CNNNet3().to(device)
-    archead = Arcface(embedding_size=256, class_num=2, s=64., m=0.5).to(device)
+    archead = Arcface(embedding_size=256, class_num=4, s=64., m=0.5).to(device)
 
     #optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
     paras_only_bn, paras_wo_bn = separate_bn_paras(model)
