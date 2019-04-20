@@ -10,7 +10,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from sklearn.metrics import confusion_matrix
-from bnudataset import MBTIFaceDataset
+#from bnudataset import MBTIFaceDataset
+from bnuclfdataset import MBTIFaceDataset
 from torchvision import transforms
 from torch.utils.data.sampler import SubsetRandomSampler
 
@@ -145,18 +146,26 @@ def load_data(data_dir, batch_size, random_seed, test_size=0.1,
                                          normalize])
 
     # load the dataset
-    train_dataset = MBTIFaceDataset(csv_file, face_dir, 'JP',
+    #train_dataset = MBTIFaceDataset(csv_file, face_dir, 'JP',
+    #                                gender_filter=None,
+    #                                factor_range=[(0, 11), (18, 23)],
+    #                                range2group=True,
+    #                                gender2group=False,
+    #                                transform=train_transform)
+    #test_dataset = MBTIFaceDataset(csv_file, face_dir, 'JP',
+    #                               gender_filter=None,
+    #                               factor_range=[(0, 11), (18, 23)],
+    #                               range2group=True,
+    #                               gender2group=False,
+    #                               transform=test_transform)
+    train_dataset = MBTIFaceDataset(csv_file, face_dir, 'EI', 3000,
+                                    class_target=True,
                                     gender_filter=None,
-                                    factor_range=[(0, 11), (18, 23)],
-                                    range2group=True,
-                                    gender2group=False,
                                     transform=train_transform)
-    test_dataset = MBTIFaceDataset(csv_file, face_dir, 'JP',
+    test_dataset = MBTIFaceDataset(csv_file, face_dir, 'EI', 3000,
+                                   class_target=True,
                                    gender_filter=None,
-                                   factor_range=[(0, 11), (18, 23)],
-                                   range2group=True,
-                                   gender2group=False,
-                                   transform=test_transform)
+                                   transform=train_transform)
 
     data_num = len(train_dataset)
     indices = range(data_num)
