@@ -24,7 +24,7 @@ def make_dataset(csv_info, img_dir, target_idx, sample_num_per_end,
     sorted_idx = np.argsort(factors)
     sorted_factors = []
     sorted_imgs = []
-    for i in range(sorted_idx):
+    for i in range(len(sorted_idx)):
         sorted_imgs.append(imgs[sorted_idx[i]])
         sorted_factors.append(factors[sorted_idx[i]])
 
