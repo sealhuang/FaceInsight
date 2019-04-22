@@ -11,7 +11,8 @@ import torch.nn.functional as F
 import torch.optim as optim
 from sklearn.metrics import confusion_matrix
 #from bnudataset import MBTIFaceDataset
-from bnuclfdataset import MBTIFaceDataset
+#from bnuclfdataset import MBTIFaceDataset
+from bnuclfdataset import PF16FaceDataset
 from torchvision import transforms
 from torch.utils.data.sampler import SubsetRandomSampler
 
@@ -53,6 +54,31 @@ class CNNNet2(nn.Module):
         self.fc1 = nn.Linear(96, 96)
         self.drop1 = nn.Dropout(p=0.5)
         self.output = nn.Linear(96, class_num)
+
+    def forward(self, x):
+        """Pass the input tensor through each of our operations."""
+        x = F.relu(self.conv1(x))
+        x = F.max_pool2d(x, 2, 2)
+        x = F.relu(self.conv2(x))
+        x = F.max_pool2d(x, 2, 2)
+        x = F.relu(self.conv3(x))
+        x = F.max_pool2d(x, 2, 2)
+        x = self.conv3_bn(x)
+        x = x.view(-1, 1*1*96)
+        x = F.relu(self.fc1(x))
+        x = self.drop1(x)
+        return F.log_softmax(self.output(x), dim=1)
+
+class CNNNet3(nn.Module):
+    def __init__(self, class_num):
+        super(CNNNet3, self).__init__()
+        self.conv1 = nn.Conv2d(3, 48, kernel_size=11, stride=3)
+        self.conv2 = nn.Conv2d(48, 96, kernel_size=3, stride=3)
+        self.conv3 = nn.Conv2d(96, 96, kernel_size=3, stride=3)
+        self.conv3_bn = nn.BatchNorm2d(96)
+        self.fc1 = nn.Linear(96, 48)
+        self.drop1 = nn.Dropout(p=0.5)
+        self.output = nn.Linear(48, class_num)
 
     def forward(self, x):
         """Pass the input tensor through each of our operations."""
@@ -126,7 +152,8 @@ def load_data(data_dir, batch_size, random_seed, test_size=0.1,
     error_msg = '[!] test_size should be in the range [0, 1].'
     assert ((test_size>=0) and (test_size<=1)), error_msg
 
-    csv_file = os.path.join(data_dir, 'mbti_factors.csv')
+    #csv_file = os.path.join(data_dir, 'mbti_factors.csv')
+    csv_file = os.path.join(data_dir, 'sel_16pf_factors.csv')
     face_dir = os.path.join(data_dir, 'faces')
 
     # get image stats
@@ -139,8 +166,7 @@ def load_data(data_dir, batch_size, random_seed, test_size=0.1,
     #transforms.RandomHorizontalFlip(),
     #transforms.RandomCrop(224),
     #transforms.RandomResizedCrop(224, scale=(0.7, 0.9), ratio=(1.0, 1.0)),
-    train_transform = transforms.Compose([transforms.RandomResizedCrop(224, scale=(0.8, 0.95), ratio=(1.0, 1.0)),
-                                          transforms.ToTensor(),
+    train_transform = transforms.Compose([transforms.ToTensor(),
                                           normalize])
     test_transform = transforms.Compose([transforms.ToTensor(),
                                          normalize])
@@ -158,11 +184,19 @@ def load_data(data_dir, batch_size, random_seed, test_size=0.1,
     #                               range2group=True,
     #                               gender2group=False,
     #                               transform=test_transform)
-    train_dataset = MBTIFaceDataset(csv_file, face_dir, 'EI', 3000,
+    #train_dataset = MBTIFaceDataset(csv_file, face_dir, 'EI', 3000,
+    #                                class_target=True,
+    #                                gender_filter=None,
+    #                                transform=train_transform)
+    #test_dataset = MBTIFaceDataset(csv_file, face_dir, 'EI', 3000,
+    #                               class_target=True,
+    #                               gender_filter=None,
+    #                               transform=train_transform)
+    train_dataset = PF16FaceDataset(csv_file, face_dir, 'A', 2500,
                                     class_target=True,
                                     gender_filter=None,
                                     transform=train_transform)
-    test_dataset = MBTIFaceDataset(csv_file, face_dir, 'EI', 3000,
+    test_dataset = PF16FaceDataset(csv_file, face_dir, 'A', 2500,
                                    class_target=True,
                                    gender_filter=None,
                                    transform=train_transform)
@@ -251,10 +285,10 @@ def run_model(random_seed):
                                           num_workers=16,
                                           pin_memory=True)
 
-    model = CNNNet2(2).to(device)
+    model = CNNNet3(2).to(device)
 
     #optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-4)
 
     test_acc = []
     for epoch in range(1, 31):
