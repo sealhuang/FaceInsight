@@ -112,14 +112,20 @@ def load_data(data_dir, batch_size, random_seed, test_size=0.1,
     #                     num_workers=num_workers, pin_memory=pin_memory)
     
     # define transforms
+    #normalize = transforms.Normalize(mean=[0.518, 0.493, 0.506],
+    #                                 std=[0.270, 0.254, 0.277])
     normalize = transforms.Normalize(mean=[0.518, 0.493, 0.506],
                                      std=[0.270, 0.254, 0.277])
     #transforms.RandomHorizontalFlip(),
     #transforms.RandomCrop(224),
     #transforms.RandomResizedCrop(224, scale=(0.7, 0.9), ratio=(1.0, 1.0)),
-    train_transform = transforms.Compose([transforms.ToTensor(),
+    train_transform = transforms.Compose([trasnforms.Resize(256),
+                                          transforms.RandomCrop(224),
+                                          transforms.ToTensor(),
                                           normalize])
-    test_transform = transforms.Compose([transforms.ToTensor(),
+    test_transform = transforms.Compose([transforms.Resize(256),
+                                         transforms.CenterCrop(224),
+                                         transforms.ToTensor(),
                                          normalize])
 
     # load the dataset
@@ -252,6 +258,7 @@ def run_model(random_seed):
         params.requires_grad = False
     net.add_module('fc1', nn.Linear(resnet_feat_dim, 128))
     net.add_module('fc2', nn.Linear(resnet_feat_dim, 2))
+    net = net.to(device)
 
     #optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
     optimizer = optim.Adam(net.parameters(), lr=0.001)
