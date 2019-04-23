@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from faceinsight.model.resnet50_128 as resnet_model
+import faceinsight.models.resnet50_128 as resnet_model
 from sklearn.metrics import confusion_matrix
 from bnuclfdataset import MBTIFaceDataset
 #from bnuclfdataset import PF16FaceDataset
@@ -103,8 +103,8 @@ def load_data(data_dir, batch_size, random_seed, test_size=0.1,
     error_msg = '[!] test_size should be in the range [0, 1].'
     assert ((test_size>=0) and (test_size<=1)), error_msg
 
-    #csv_file = os.path.join(data_dir, 'mbti_factors.csv')
-    csv_file = os.path.join(data_dir, 'sel_16pf_factors.csv')
+    csv_file = os.path.join(data_dir, 'mbti_factors.csv')
+    #csv_file = os.path.join(data_dir, 'sel_16pf_factors.csv')
     face_dir = os.path.join(data_dir, 'faces')
 
     # get image stats
@@ -240,7 +240,7 @@ def run_model(random_seed):
                                           pin_memory=True)
 
     # load base model
-    model_dir = os.path.split(resnet.__file__)[0]
+    model_dir = os.path.split(resnet_model.__file__)[0]
     model_def_file = os.path.join(model_dir, 'resnet50_128.py')
     model_weight_file = os.path.join(model_dir, 'resnet50_128.pth')
     MainModel = imp.load_source('MainModel', model_def_file)
