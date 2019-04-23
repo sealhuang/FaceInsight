@@ -23,9 +23,9 @@ class FineTuneModel(nn.Module):
         super(FineTuneModel, self).__init__()
         self.base_model = base_model
         base_feat_dim = base_model.feat_extract.out_channels
-        self.fc1 = nn.Linear(base_feat_dim, 128)
+        self.fc1 = nn.Linear(base_feat_dim, 256)
         #self.drop1 = nn.Dropout(p=0.5)
-        self.output = nn.Linear(128, class_num)
+        self.output = nn.Linear(256, class_num)
         #self.output = nn.Linear(base_feat_dim, class_num)
         
         # freeze those weights
@@ -267,8 +267,8 @@ def run_model(random_seed):
 
     # load base model
     model_dir = os.path.split(resnet_model.__file__)[0]
-    model_def_file = os.path.join(model_dir, 'resnet50_128.py')
-    model_weight_file = os.path.join(model_dir, 'resnet50_128.pth')
+    model_def_file = os.path.join(model_dir, 'resnet50_256.py')
+    model_weight_file = os.path.join(model_dir, 'resnet50_256.pth')
     MainModel = imp.load_source('MainModel', model_def_file)
     resnet_base = torch.load(model_weight_file)
     
