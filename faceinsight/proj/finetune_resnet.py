@@ -139,7 +139,7 @@ def load_data(data_dir, batch_size, random_seed, test_size=0.1,
     #transforms.RandomHorizontalFlip(),
     #transforms.RandomCrop(224),
     #transforms.RandomResizedCrop(224, scale=(0.7, 0.9), ratio=(1.0, 1.0)),
-    train_transform = transforms.Compose([trasnforms.Resize(256),
+    train_transform = transforms.Compose([transforms.Resize(256),
                                           transforms.RandomCrop(224),
                                           transforms.ToTensor(),
                                           normalize])
