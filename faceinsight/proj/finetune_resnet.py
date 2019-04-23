@@ -18,6 +18,26 @@ from torchvision import transforms
 from torch.utils.data.sampler import SubsetRandomSampler
 
 
+class FineTuneModel(nn.Module):
+    def __init__(self, base_model, class_num):
+        super(FineTuneModel, self).__init__()
+        self.features = nn.Sequential(*list(base_model.children()))
+        base_feat_dim = base_model.feat_extract.out_channels
+        self.fc1 = nn.Linear(base_feat_dim, 128)
+        self.drop1 = nn.Dropout(p=0.5)
+        self.output = nn.Linear(128, class_num)
+        
+        # freeze those weights
+        for p in self.features.parameters():
+            p.requires_grad = False
+
+    def forward(self, x):
+        f = self.features(x)
+        f= f.view(f.size[0], -1)
+        f = relu(self.fc1(f))
+        f = self.drop1(f)
+        return F.log_softmax(self.output(f), dim=1)
+
 class CNNNet1(nn.Module):
     def __init__(self, class_num):
         super(CNNNet1, self).__init__()
@@ -251,14 +271,9 @@ def run_model(random_seed):
     model_weight_file = os.path.join(model_dir, 'resnet50_128.pth')
     MainModel = imp.load_source('MainModel', model_def_file)
     resnet_base = torch.load(model_weight_file)
-    # def model head
-    resnet_feat_dim = resnet_base.feat_extract.out_channels
-    net = nn.Sequential(*list(resnet_base.children()))
-    for params in net.parameters():
-        params.requires_grad = False
-    net.add_module('fc1', nn.Linear(resnet_feat_dim, 128))
-    net.add_module('fc2', nn.Linear(resnet_feat_dim, 2))
-    net = net.to(device)
+    
+    # model definition
+    model = FineTuneModel(resnet_base, 2).to(device)
 
     #optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
     optimizer = optim.Adam(net.parameters(), lr=0.001)
