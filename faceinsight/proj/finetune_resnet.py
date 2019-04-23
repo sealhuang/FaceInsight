@@ -276,7 +276,7 @@ def run_model(random_seed):
     model = FineTuneModel(resnet_base, 2).to(device)
 
     #optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
-    optimizer = optim.Adam(net.parameters(), lr=0.001)
+    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.001)
 
     test_acc = []
     for epoch in range(1, 31):
