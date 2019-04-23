@@ -12,8 +12,8 @@ import torch.nn.functional as F
 import torch.optim as optim
 import faceinsight.models.resnet50_128 as resnet_model
 from sklearn.metrics import confusion_matrix
-from bnuclfdataset import MBTIFaceDataset
-#from bnuclfdataset import PF16FaceDataset
+#from bnuclfdataset import MBTIFaceDataset
+from bnuclfdataset import PF16FaceDataset
 from torchvision import transforms
 from torch.utils.data.sampler import SubsetRandomSampler
 
@@ -21,22 +21,25 @@ from torch.utils.data.sampler import SubsetRandomSampler
 class FineTuneModel(nn.Module):
     def __init__(self, base_model, class_num):
         super(FineTuneModel, self).__init__()
-        self.features = nn.Sequential(*list(base_model.children()))
+        self.base_model = base_model
         base_feat_dim = base_model.feat_extract.out_channels
         self.fc1 = nn.Linear(base_feat_dim, 128)
-        self.drop1 = nn.Dropout(p=0.5)
+        #self.drop1 = nn.Dropout(p=0.5)
         self.output = nn.Linear(128, class_num)
+        #self.output = nn.Linear(base_feat_dim, class_num)
         
         # freeze those weights
-        for p in self.features.parameters():
+        for p in self.base_model.parameters():
             p.requires_grad = False
 
     def forward(self, x):
-        f = self.features(x)
-        f= f.view(f.size[0], -1)
-        f = relu(self.fc1(f))
-        f = self.drop1(f)
-        return F.log_softmax(self.output(f), dim=1)
+        f = self.base_model(x)
+        f= f.view(f.shape[0], -1)
+        # norm feat
+        f = torch.div(f, torch.norm(f, 2, 1, True))*20
+        f = F.relu(self.fc1(f))
+        #f = self.drop1(f)
+        return self.output(f)
 
 class CNNNet1(nn.Module):
     def __init__(self, class_num):
@@ -123,8 +126,8 @@ def load_data(data_dir, batch_size, random_seed, test_size=0.1,
     error_msg = '[!] test_size should be in the range [0, 1].'
     assert ((test_size>=0) and (test_size<=1)), error_msg
 
-    csv_file = os.path.join(data_dir, 'mbti_factors.csv')
-    #csv_file = os.path.join(data_dir, 'sel_16pf_factors.csv')
+    #csv_file = os.path.join(data_dir, 'mbti_factors.csv')
+    csv_file = os.path.join(data_dir, 'sel_16pf_factors.csv')
     face_dir = os.path.join(data_dir, 'faces')
 
     # get image stats
@@ -132,18 +135,16 @@ def load_data(data_dir, batch_size, random_seed, test_size=0.1,
     #                     num_workers=num_workers, pin_memory=pin_memory)
     
     # define transforms
-    #normalize = transforms.Normalize(mean=[0.518, 0.493, 0.506],
-    #                                 std=[0.270, 0.254, 0.277])
     normalize = transforms.Normalize(mean=[0.518, 0.493, 0.506],
                                      std=[0.270, 0.254, 0.277])
     #transforms.RandomHorizontalFlip(),
     #transforms.RandomCrop(224),
     #transforms.RandomResizedCrop(224, scale=(0.7, 0.9), ratio=(1.0, 1.0)),
-    train_transform = transforms.Compose([transforms.Resize(256),
+    train_transform = transforms.Compose([transforms.Resize(250),
                                           transforms.RandomCrop(224),
                                           transforms.ToTensor(),
                                           normalize])
-    test_transform = transforms.Compose([transforms.Resize(256),
+    test_transform = transforms.Compose([transforms.Resize(250),
                                          transforms.CenterCrop(224),
                                          transforms.ToTensor(),
                                          normalize])
@@ -161,22 +162,22 @@ def load_data(data_dir, batch_size, random_seed, test_size=0.1,
     #                               range2group=True,
     #                               gender2group=False,
     #                               transform=test_transform)
-    train_dataset = MBTIFaceDataset(csv_file, face_dir, 'EI', 2500,
-                                    class_target=True,
-                                    gender_filter=None,
-                                    transform=train_transform)
-    test_dataset = MBTIFaceDataset(csv_file, face_dir, 'EI', 2500,
-                                   class_target=True,
-                                   gender_filter=None,
-                                   transform=train_transform)
-    #train_dataset = PF16FaceDataset(csv_file, face_dir, 'A', 2500,
+    #train_dataset = MBTIFaceDataset(csv_file, face_dir, 'EI', 2500,
     #                                class_target=True,
     #                                gender_filter=None,
     #                                transform=train_transform)
-    #test_dataset = PF16FaceDataset(csv_file, face_dir, 'A', 2500,
+    #test_dataset = MBTIFaceDataset(csv_file, face_dir, 'EI', 2500,
     #                               class_target=True,
     #                               gender_filter=None,
     #                               transform=train_transform)
+    train_dataset = PF16FaceDataset(csv_file, face_dir, 'C', 2500,
+                                    class_target=True,
+                                    gender_filter=None,
+                                    transform=train_transform)
+    test_dataset = PF16FaceDataset(csv_file, face_dir, 'C', 2500,
+                                   class_target=True,
+                                   gender_filter=None,
+                                   transform=train_transform)
 
     data_num = len(train_dataset)
     indices = range(data_num)
@@ -207,9 +208,9 @@ def train(model, device, train_loader, optimizer, epoch):
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
-        output = model(data)
-        #loss = F.cross_entropy(output, target)
-        loss = F.nll_loss(output, target)
+        output = model(data[:, [2, 1, 0], :, :]*255)
+        loss = F.cross_entropy(output, target)
+        #loss = F.nll_loss(output, target)
         loss.backward()
         optimizer.step()
         if batch_idx % 15 == 0:
@@ -227,9 +228,10 @@ def test(model, device, test_loader):
     with torch.no_grad():
         for data, target in test_loader:
             data, target = data.to(device), target.to(device)
-            output = model(data)
+            output = model(data[:, [2, 1, 0], :, :]*255)
             # sum up batch loss
-            test_loss += F.nll_loss(output, target, reduction='sum').item()
+            test_loss += F.cross_entropy(output, target, reduction='sum').item()
+            #test_loss += F.nll_loss(output, target, reduction='sum').item()
             # get the index of the max log-probability
             pred = output.argmax(dim=1, keepdim=False)
             #correct += pred.eq(target.view_as(pred)).sum().item()
@@ -256,11 +258,11 @@ def run_model(random_seed):
 
     print('Random seed is %s'%(random_seed))
     train_loader, test_loader = load_data(data_dir,
-                                          batch_size=100,
+                                          batch_size=50,
                                           random_seed=random_seed,
-                                          test_size=0.1,
+                                          test_size=0.2,
                                           shuffle=True,
-                                          num_workers=16,
+                                          num_workers=25,
                                           pin_memory=True)
 
     # load base model
@@ -274,12 +276,13 @@ def run_model(random_seed):
     model = FineTuneModel(resnet_base, 2).to(device)
 
     #optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
-    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.001)
+    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()),
+                           lr=0.001, weight_decay=1e-5)
 
     test_acc = []
     for epoch in range(1, 31):
-        train(net, device, train_loader, optimizer, epoch)
-        acc = test(net, device, test_loader)
+        train(model, device, train_loader, optimizer, epoch)
+        acc = test(model, device, test_loader)
         test_acc.append(acc)
 
     # save test accruacy
