@@ -11,11 +11,11 @@ import torch.nn.functional as F
 import torch.optim as optim
 from sklearn.metrics import confusion_matrix
 #from bnudataset import MBTIFaceDataset
-#from bnuclfdataset import MBTIFaceDataset
-from bnuclfdataset import PF16FaceDataset
+from bnuclfdataset import MBTIFaceDataset
+#from bnuclfdataset import PF16FaceDataset
 from torchvision import transforms
 from torch.utils.data.sampler import SubsetRandomSampler
-
+from tensorboardX import SummaryWriter
 
 class CNNNet1(nn.Module):
     def __init__(self, class_num):
@@ -152,8 +152,8 @@ def load_data(data_dir, batch_size, random_seed, test_size=0.1,
     error_msg = '[!] test_size should be in the range [0, 1].'
     assert ((test_size>=0) and (test_size<=1)), error_msg
 
-    #csv_file = os.path.join(data_dir, 'mbti_factors.csv')
-    csv_file = os.path.join(data_dir, 'sel_16pf_factors.csv')
+    csv_file = os.path.join(data_dir, 'mbti_factors.csv')
+    #csv_file = os.path.join(data_dir, 'sel_16pf_factors.csv')
     face_dir = os.path.join(data_dir, 'faces')
 
     # get image stats
@@ -184,22 +184,22 @@ def load_data(data_dir, batch_size, random_seed, test_size=0.1,
     #                               range2group=True,
     #                               gender2group=False,
     #                               transform=test_transform)
-    #train_dataset = MBTIFaceDataset(csv_file, face_dir, 'EI', 3000,
-    #                                class_target=True,
-    #                                gender_filter=None,
-    #                                transform=train_transform)
-    #test_dataset = MBTIFaceDataset(csv_file, face_dir, 'EI', 3000,
-    #                               class_target=True,
-    #                               gender_filter=None,
-    #                               transform=train_transform)
-    train_dataset = PF16FaceDataset(csv_file, face_dir, 'A', 2500,
+    train_dataset = MBTIFaceDataset(csv_file, face_dir, 'EI', 2500,
                                     class_target=True,
                                     gender_filter=None,
                                     transform=train_transform)
-    test_dataset = PF16FaceDataset(csv_file, face_dir, 'A', 2500,
+    test_dataset = MBTIFaceDataset(csv_file, face_dir, 'EI', 2500,
                                    class_target=True,
                                    gender_filter=None,
                                    transform=train_transform)
+    #train_dataset = PF16FaceDataset(csv_file, face_dir, 'A', 2500,
+    #                                class_target=True,
+    #                                gender_filter=None,
+    #                                transform=train_transform)
+    #test_dataset = PF16FaceDataset(csv_file, face_dir, 'A', 2500,
+    #                               class_target=True,
+    #                               gender_filter=None,
+    #                               transform=train_transform)
 
     data_num = len(train_dataset)
     indices = range(data_num)
@@ -240,7 +240,7 @@ def train(model, device, train_loader, optimizer, epoch):
                 100.*batch_idx*len(data)/len(train_loader.sampler.indices),
                 loss.item()))
 
-def test(model, device, test_loader):
+def test(model, device, test_loader, epoch, writer):
     model.eval()
     test_loss = 0
     correct = 0
@@ -258,6 +258,10 @@ def test(model, device, test_loader):
             correct += pred.eq(target).sum().item()
             all_pred.append(pred.cpu().data.numpy())
             all_true.append(target.cpu().data.numpy())
+    
+    # plot model parameter hist
+    for name, param in model.named_parameters():
+        writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch)
 
     test_loss /= len(test_loader.sampler.indices)
     print('Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.1f}%)'.format(
@@ -282,23 +286,30 @@ def run_model(random_seed):
                                           random_seed=random_seed,
                                           test_size=0.1,
                                           shuffle=True,
-                                          num_workers=16,
+                                          num_workers=25,
                                           pin_memory=True)
 
     model = CNNNet3(2).to(device)
+    # summary writer config
+    writer = SummaryWriter()
+    writer.add_graph(model)
 
     #optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
     optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-4)
 
     test_acc = []
     for epoch in range(1, 31):
-        train(model, device, train_loader, optimizer, epoch)
-        acc = test(model, device, test_loader)
+        train(model, device, train_loader, optimizer, epoch, writer)
+        acc = test(model, device, test_loader, epoch, writer)
         test_acc.append(acc)
 
     # save test accruacy
     with open('test_acc.csv', 'a+') as f:
         f.write(','.join([str(item) for item in test_acc])+'\n')
+    
+    writer.export_scalars_to_json('./all_scalars_%s.json'%(random_seed))
+    writer.close()
+
 
 def main():
     """Main function."""
