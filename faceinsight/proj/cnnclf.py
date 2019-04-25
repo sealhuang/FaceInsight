@@ -98,10 +98,10 @@ class CNNNet3(nn.Module):
 class CNNNet4(nn.Module):
     def __init__(self, class_num):
         super(CNNNet4, self).__init__()
-        self.conv1 = nn.Conv2d(3, 48, kernel_size=11, stride=4, bias=True)
-        self.conv2 = nn.Conv2d(48, 96, kernel_size=5, stride=2, bias=True)
+        self.conv1 = nn.Conv2d(3, 32, kernel_size=11, stride=4, bias=True)
+        self.conv2 = nn.Conv2d(32, 96, kernel_size=5, stride=2, bias=True)
         self.conv3 = nn.Conv2d(96, 96, kernel_size=3, stride=3, bias=True)
-        self.conv4_bn = nn.BatchNorm2d(96)
+        #self.conv4_bn = nn.BatchNorm2d(96)
         self.fc1 = nn.Linear(96, 96, bias=True)
         self.drop1 = nn.Dropout(p=0.5)
         self.output = nn.Linear(96, class_num, bias=True)
@@ -114,7 +114,7 @@ class CNNNet4(nn.Module):
         x = F.max_pool2d(x, 2, 2)
         x = F.relu(self.conv3(x))
         x = F.max_pool2d(x, 2, 2)
-        x = self.conv4_bn(x)
+        #x = self.conv4_bn(x)
         x = x.view(-1, 1*1*96)
         x = F.relu(self.fc1(x))
         x = self.drop1(x)
@@ -150,8 +150,8 @@ def get_img_stats(csv_file, face_dir, batch_size, num_workers, pin_memory):
 
     return mean, std
 
-def load_data(data_dir, batch_size, random_seed, test_size=0.1,
-              shuffle=True, num_workers=0, pin_memory=False):
+def load_data(data_dir, sample_size_per_class, train_sampler, test_sampler,
+              batch_size, shuffle=True, num_workers=0, pin_memory=False):
     """Utility function for loading and returning train and test
     multi-process iterators over the images.
 
@@ -161,10 +161,6 @@ def load_data(data_dir, batch_size, random_seed, test_size=0.1,
     ------
     - data_dir: path directory to the dataset.
     - batch_size: how many samples per batch to load.
-    - random_seed: fix seed for reproducibility.
-    - test_size: percentage split of the whole dataset used for test set.
-      Should be a float in the range [0, 1].
-    - shuffle: whether to shuffle the train/test indices.
     - num_workers: number of subprocesses to use when loading the dataset.
     - pin_memory: whether to copy tensors into CUDA pinned memory. Set it to
       True if using GPU.
@@ -175,9 +171,6 @@ def load_data(data_dir, batch_size, random_seed, test_size=0.1,
     - test_loader: test set iterator.
 
     """
-    error_msg = '[!] test_size should be in the range [0, 1].'
-    assert ((test_size>=0) and (test_size<=1)), error_msg
-
     csv_file = os.path.join(data_dir, 'mbti_factors.csv')
     #csv_file = os.path.join(data_dir, 'sel_16pf_factors.csv')
     face_dir = os.path.join(data_dir, 'faces')
@@ -214,11 +207,11 @@ def load_data(data_dir, batch_size, random_seed, test_size=0.1,
     #                               range2group=True,
     #                               gender2group=False,
     #                               transform=test_transform)
-    train_dataset = MBTIFaceDataset(csv_file, face_dir, 'EI', 1500,
+    train_dataset = MBTIFaceDataset(csv_file, face_dir, 'EI', sample_size_per_class,
                                     class_target=True,
                                     gender_filter='female',
                                     transform=train_transform)
-    test_dataset = MBTIFaceDataset(csv_file, face_dir, 'EI', 1500,
+    test_dataset = MBTIFaceDataset(csv_file, face_dir, 'EI', sample_size_per_class,
                                    class_target=True,
                                    gender_filter='female',
                                    transform=train_transform)
@@ -230,17 +223,6 @@ def load_data(data_dir, batch_size, random_seed, test_size=0.1,
     #                               class_target=True,
     #                               gender_filter=None,
     #                               transform=train_transform)
-
-    data_num = len(train_dataset)
-    indices = range(data_num)
-    split = int(np.floor(data_num * test_size))
-
-    if shuffle:
-        np.random.seed(random_seed)
-        np.random.shuffle(indices)
-
-    train_sampler = SubsetRandomSampler(indices[split:])
-    test_sampler = SubsetRandomSampler(indices[:split])
 
     train_loader = torch.utils.data.DataLoader(train_dataset,
                                                batch_size=batch_size,
@@ -255,7 +237,7 @@ def load_data(data_dir, batch_size, random_seed, test_size=0.1,
  
     return (train_loader, test_loader)
 
-def train(model, device, train_loader, optimizer, epoch):
+def train(model, device, train_loader, optimizer, epoch, writer):
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device)
@@ -264,6 +246,8 @@ def train(model, device, train_loader, optimizer, epoch):
         loss = F.nll_loss(output, target)
         loss.backward()
         optimizer.step()
+        writer.add_scalar('data/training-loss', loss,
+                          (epoch-1)*int(len(train_loader.sampler.indices)/data.shape[0])+batch_idx+1)
         if batch_idx % 15 == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\t Loss: {:.6f}'.format(
                 epoch, batch_idx*len(data), len(train_loader.sampler.indices),
@@ -305,6 +289,7 @@ def test(model, device, test_loader, epoch, writer):
     cm = confusion_matrix(np.concatenate(all_true), np.concatenate(all_pred))
     print(cm*1.0 / cm.sum(axis=1, keepdims=True))
     print('\n')
+    writer.add_scalar('data/test-accuracy', 100.*correct/len(test_loader.sampler.indices), epoch)
 
     return 100.*correct/len(test_loader.sampler.indices)
 
@@ -312,38 +297,54 @@ def run_model(random_seed):
     """Main function."""
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-    # load data
+    # load data for cross-validation
     data_dir = '/home/huanglj/proj'
-
+    sample_size_per_class = 1500
+    test_ratio = 0.1
+    c1_sample_idx = range(sample_size_per_class)
+    c2_sample_idx = range(sample_size_per_class)
+    split_idx = int(np.floor(sample_size_per_class * test_ratio))
+    # get training- and testing-samples
     print('Random seed is %s'%(random_seed))
-    train_loader, test_loader = load_data(data_dir,
-                                          batch_size=100,
-                                          random_seed=random_seed,
-                                          test_size=0.1,
-                                          shuffle=True,
-                                          num_workers=25,
-                                          pin_memory=True)
+    np.random.seed(random_seed)
+    np.random.shuffle(c1_sample_idx)
+    np.random.shuffle(c2_sample_idx)
+    # CV
+    for fold in range(int(1/test_ratio)):
+        print('Fold %s/%s'%(fold+1, int(1/test_ratio)))
+        train_sampler = SubsetRandomSampler(c1_sample_idx[split_idx:]+[i+sample_size_per_class for i in c2_sample_idx[split_idx:]])
+        test_sampler = SubsetRandomSampler(c1_sample_idx[:split_idx]+[i+sample_size_per_class for i in c2_sample_idx[:split_idx]])
+        c1_sample_idx = c1_sample_idx[split_idx:] + c1_sample_idx[:split_idx]
+        c2_sample_idx = c2_sample_idx[split_idx:] + c2_sample_idx[:split_idx]
+        # load data    
+        train_loader, test_loader = load_data(data_dir,
+                                              sample_size_per_class,
+                                              train_sampler,
+                                              test_sampler,
+                                              batch_size=150,
+                                              num_workers=25,
+                                              pin_memory=True)
+        # model training and eval
+        model = CNNNet4(2).to(device)
+        # summary writer config
+        writer = SummaryWriter()
+        #writer.add_graph(CNNNet3(2))
 
-    model = CNNNet4(2).to(device)
-    # summary writer config
-    writer = SummaryWriter()
-    #writer.add_graph(CNNNet3(2))
+        #optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.9)
+        optimizer = optim.Adam(model.parameters(), lr=0.0003)
 
-    #optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.9)
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+        test_acc = []
+        for epoch in range(1, 201):
+            train(model, device, train_loader, optimizer, epoch, writer)
+            acc = test(model, device, test_loader, epoch, writer)
+            test_acc.append(acc)
 
-    test_acc = []
-    for epoch in range(1, 51):
-        train(model, device, train_loader, optimizer, epoch)
-        acc = test(model, device, test_loader, epoch, writer)
-        test_acc.append(acc)
-
-    # save test accruacy
-    with open('test_acc.csv', 'a+') as f:
-        f.write(','.join([str(item) for item in test_acc])+'\n')
+        # save test accruacy
+        with open('test_acc.csv', 'a+') as f:
+            f.write(','.join([str(item) for item in test_acc])+'\n')
     
-    writer.export_scalars_to_json('./all_scalars_%s.json'%(random_seed))
-    writer.close()
+        #writer.export_scalars_to_json('./all_scalars_%s.json'%(random_seed))
+        writer.close()
 
 
 def main():
