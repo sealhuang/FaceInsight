@@ -14,6 +14,7 @@ from sklearn.metrics import confusion_matrix
 from bnuclfdataset import MBTIFaceDataset
 #from bnuclfdataset import PF16FaceDataset
 from torchvision import transforms
+import torchvision.utils as vutils
 from torch.utils.data.sampler import SubsetRandomSampler
 from tensorboardX import SummaryWriter
 
@@ -72,13 +73,13 @@ class CNNNet2(nn.Module):
 class CNNNet3(nn.Module):
     def __init__(self, class_num):
         super(CNNNet3, self).__init__()
-        self.conv1 = nn.Conv2d(3, 48, kernel_size=11, stride=3)
-        self.conv2 = nn.Conv2d(48, 96, kernel_size=3, stride=3)
-        self.conv3 = nn.Conv2d(96, 96, kernel_size=3, stride=3)
+        self.conv1 = nn.Conv2d(3, 48, kernel_size=11, stride=3, bias=False)
+        self.conv2 = nn.Conv2d(48, 96, kernel_size=3, stride=3, bias=False)
+        self.conv3 = nn.Conv2d(96, 96, kernel_size=3, stride=3, bias=False)
         self.conv3_bn = nn.BatchNorm2d(96)
-        self.fc1 = nn.Linear(96, 48)
+        self.fc1 = nn.Linear(96, 48, bias=True)
         self.drop1 = nn.Dropout(p=0.5)
-        self.output = nn.Linear(48, class_num)
+        self.output = nn.Linear(48, class_num, bias=True)
 
     def forward(self, x):
         """Pass the input tensor through each of our operations."""
@@ -89,6 +90,31 @@ class CNNNet3(nn.Module):
         x = F.relu(self.conv3(x))
         x = F.max_pool2d(x, 2, 2)
         x = self.conv3_bn(x)
+        x = x.view(-1, 1*1*96)
+        x = F.relu(self.fc1(x))
+        x = self.drop1(x)
+        return F.log_softmax(self.output(x), dim=1)
+
+class CNNNet4(nn.Module):
+    def __init__(self, class_num):
+        super(CNNNet4, self).__init__()
+        self.conv1 = nn.Conv2d(3, 48, kernel_size=11, stride=4, bias=True)
+        self.conv2 = nn.Conv2d(48, 96, kernel_size=5, stride=2, bias=True)
+        self.conv3 = nn.Conv2d(96, 96, kernel_size=3, stride=3, bias=True)
+        self.conv4_bn = nn.BatchNorm2d(96)
+        self.fc1 = nn.Linear(96, 96, bias=True)
+        self.drop1 = nn.Dropout(p=0.5)
+        self.output = nn.Linear(96, class_num, bias=True)
+
+    def forward(self, x):
+        """Pass the input tensor through each of our operations."""
+        x = F.relu(self.conv1(x))
+        x = F.max_pool2d(x, 3, 2)
+        x = F.relu(self.conv2(x))
+        x = F.max_pool2d(x, 2, 2)
+        x = F.relu(self.conv3(x))
+        x = F.max_pool2d(x, 2, 2)
+        x = self.conv4_bn(x)
         x = x.view(-1, 1*1*96)
         x = F.relu(self.fc1(x))
         x = self.drop1(x)
@@ -166,9 +192,13 @@ def load_data(data_dir, batch_size, random_seed, test_size=0.1,
     #transforms.RandomHorizontalFlip(),
     #transforms.RandomCrop(224),
     #transforms.RandomResizedCrop(224, scale=(0.7, 0.9), ratio=(1.0, 1.0)),
-    train_transform = transforms.Compose([transforms.ToTensor(),
+    train_transform = transforms.Compose([transforms.Resize(256),
+                                          transforms.RandomCrop(227),
+                                          transforms.ToTensor(),
                                           normalize])
-    test_transform = transforms.Compose([transforms.ToTensor(),
+    test_transform = transforms.Compose([transforms.Resize(256),
+                                         transforms.CenterCrop(227),
+                                         transforms.ToTensor(),
                                          normalize])
 
     # load the dataset
@@ -184,13 +214,13 @@ def load_data(data_dir, batch_size, random_seed, test_size=0.1,
     #                               range2group=True,
     #                               gender2group=False,
     #                               transform=test_transform)
-    train_dataset = MBTIFaceDataset(csv_file, face_dir, 'EI', 2500,
+    train_dataset = MBTIFaceDataset(csv_file, face_dir, 'EI', 1500,
                                     class_target=True,
-                                    gender_filter=None,
+                                    gender_filter='female',
                                     transform=train_transform)
-    test_dataset = MBTIFaceDataset(csv_file, face_dir, 'EI', 2500,
+    test_dataset = MBTIFaceDataset(csv_file, face_dir, 'EI', 1500,
                                    class_target=True,
-                                   gender_filter=None,
+                                   gender_filter='female',
                                    transform=train_transform)
     #train_dataset = PF16FaceDataset(csv_file, face_dir, 'A', 2500,
     #                                class_target=True,
@@ -262,6 +292,11 @@ def test(model, device, test_loader, epoch, writer):
     # plot model parameter hist
     for name, param in model.named_parameters():
         writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch)
+    params = model.state_dict()
+    #print(params)
+    x = vutils.make_grid(params['conv1.weight'].clone().cpu().data,
+                         normalize=True, scale_each=True)
+    writer.add_image('Image', x, epoch)
 
     test_loss /= len(test_loader.sampler.indices)
     print('Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.1f}%)'.format(
@@ -289,17 +324,17 @@ def run_model(random_seed):
                                           num_workers=25,
                                           pin_memory=True)
 
-    model = CNNNet3(2).to(device)
+    model = CNNNet4(2).to(device)
     # summary writer config
     writer = SummaryWriter()
-    writer.add_graph(model)
+    #writer.add_graph(CNNNet3(2))
 
-    #optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
-    optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-4)
+    #optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.9)
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
 
     test_acc = []
-    for epoch in range(1, 31):
-        train(model, device, train_loader, optimizer, epoch, writer)
+    for epoch in range(1, 51):
+        train(model, device, train_loader, optimizer, epoch)
         acc = test(model, device, test_loader, epoch, writer)
         test_acc.append(acc)
 
@@ -313,11 +348,14 @@ def run_model(random_seed):
 
 def main():
     """Main function."""
-    seeds = [10, 25, 69, 30, 22, 91, 65, 83, 11, 8]
-    #seeds = [10]
-    #random_seed = np.random.randint(100)
+    #seeds = [10, 25, 69, 30, 22, 91, 65, 83, 11, 8]
+    seeds = [10]
     for i in seeds:
         run_model(i)
+    
+    #for i in range(50):
+    #    seed = np.random.randint(100)
+    #    run_model(seed)
 
 
 if __name__=='__main__':
