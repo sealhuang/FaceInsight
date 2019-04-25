@@ -101,7 +101,7 @@ class CNNNet4(nn.Module):
         self.conv1 = nn.Conv2d(3, 32, kernel_size=11, stride=4, bias=True)
         self.conv2 = nn.Conv2d(32, 96, kernel_size=5, stride=2, bias=True)
         self.conv3 = nn.Conv2d(96, 96, kernel_size=3, stride=3, bias=True)
-        #self.conv4_bn = nn.BatchNorm2d(96)
+        self.conv4_bn = nn.BatchNorm2d(96)
         self.fc1 = nn.Linear(96, 96, bias=True)
         self.drop1 = nn.Dropout(p=0.5)
         self.output = nn.Linear(96, class_num, bias=True)
@@ -114,7 +114,7 @@ class CNNNet4(nn.Module):
         x = F.max_pool2d(x, 2, 2)
         x = F.relu(self.conv3(x))
         x = F.max_pool2d(x, 2, 2)
-        #x = self.conv4_bn(x)
+        x = self.conv4_bn(x)
         x = x.view(-1, 1*1*96)
         x = F.relu(self.fc1(x))
         x = self.drop1(x)
@@ -182,14 +182,15 @@ def load_data(data_dir, sample_size_per_class, train_sampler, test_sampler,
     # define transforms
     normalize = transforms.Normalize(mean=[0.518, 0.493, 0.506],
                                      std=[0.270, 0.254, 0.277])
-    #transforms.RandomHorizontalFlip(),
-    #transforms.RandomCrop(224),
     #transforms.RandomResizedCrop(224, scale=(0.7, 0.9), ratio=(1.0, 1.0)),
-    train_transform = transforms.Compose([transforms.Resize(256),
+    train_transform = transforms.Compose([transforms.Resize(250),
                                           transforms.RandomCrop(227),
+                                          transforms.ColorJitter(brightness=.05,
+                                                                 saturation=.05),
+                                          transforms.RandomHorizontalFlip(),
                                           transforms.ToTensor(),
                                           normalize])
-    test_transform = transforms.Compose([transforms.Resize(256),
+    test_transform = transforms.Compose([transforms.Resize(250),
                                          transforms.CenterCrop(227),
                                          transforms.ToTensor(),
                                          normalize])
@@ -247,7 +248,7 @@ def train(model, device, train_loader, optimizer, epoch, writer):
         loss.backward()
         optimizer.step()
         writer.add_scalar('data/training-loss', loss,
-                          (epoch-1)*int(len(train_loader.sampler.indices)/data.shape[0])+batch_idx+1)
+                          (epoch-1)*int(len(train_loader.sampler.indices)/64)+batch_idx+1)
         if batch_idx % 15 == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\t Loss: {:.6f}'.format(
                 epoch, batch_idx*len(data), len(train_loader.sampler.indices),
@@ -311,6 +312,7 @@ def run_model(random_seed):
     np.random.shuffle(c2_sample_idx)
     # CV
     for fold in range(int(1/test_ratio)):
+    #for fold in range(1):
         print('Fold %s/%s'%(fold+1, int(1/test_ratio)))
         train_sampler = SubsetRandomSampler(c1_sample_idx[split_idx:]+[i+sample_size_per_class for i in c2_sample_idx[split_idx:]])
         test_sampler = SubsetRandomSampler(c1_sample_idx[:split_idx]+[i+sample_size_per_class for i in c2_sample_idx[:split_idx]])
@@ -321,7 +323,7 @@ def run_model(random_seed):
                                               sample_size_per_class,
                                               train_sampler,
                                               test_sampler,
-                                              batch_size=150,
+                                              batch_size=64,
                                               num_workers=25,
                                               pin_memory=True)
         # model training and eval
@@ -331,10 +333,10 @@ def run_model(random_seed):
         #writer.add_graph(CNNNet3(2))
 
         #optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.9)
-        optimizer = optim.Adam(model.parameters(), lr=0.0003)
+        optimizer = optim.Adam(model.parameters(), lr=0.0005)
 
         test_acc = []
-        for epoch in range(1, 201):
+        for epoch in range(1, 231):
             train(model, device, train_loader, optimizer, epoch, writer)
             acc = test(model, device, test_loader, epoch, writer)
             test_acc.append(acc)
