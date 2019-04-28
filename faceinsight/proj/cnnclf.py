@@ -11,8 +11,8 @@ import torch.nn.functional as F
 import torch.optim as optim
 from sklearn.metrics import confusion_matrix
 #from bnudataset import MBTIFaceDataset
-from bnuclfdataset import MBTIFaceDataset
-#from bnuclfdataset import PF16FaceDataset
+#from bnuclfdataset import MBTIFaceDataset
+from bnuclfdataset import PF16FaceDataset
 from torchvision import transforms
 import torchvision.utils as vutils
 from torch.utils.data.sampler import SubsetRandomSampler
@@ -171,8 +171,8 @@ def load_data(data_dir, sample_size_per_class, train_sampler, test_sampler,
     - test_loader: test set iterator.
 
     """
-    csv_file = os.path.join(data_dir, 'mbti_factors.csv')
-    #csv_file = os.path.join(data_dir, 'sel_16pf_factors.csv')
+    #csv_file = os.path.join(data_dir, 'mbti_factors.csv')
+    csv_file = os.path.join(data_dir, 'sel_16pf_factors.csv')
     face_dir = os.path.join(data_dir, 'faces')
 
     # get image stats
@@ -208,22 +208,26 @@ def load_data(data_dir, sample_size_per_class, train_sampler, test_sampler,
     #                               range2group=True,
     #                               gender2group=False,
     #                               transform=test_transform)
-    train_dataset = MBTIFaceDataset(csv_file, face_dir, 'EI', sample_size_per_class,
-                                    class_target=True,
-                                    gender_filter='female',
-                                    transform=train_transform)
-    test_dataset = MBTIFaceDataset(csv_file, face_dir, 'EI', sample_size_per_class,
-                                   class_target=True,
-                                   gender_filter='female',
-                                   transform=train_transform)
-    #train_dataset = PF16FaceDataset(csv_file, face_dir, 'A', 2500,
+    #train_dataset = MBTIFaceDataset(csv_file, face_dir, 'JP',
+    #                                sample_size_per_class,
     #                                class_target=True,
-    #                                gender_filter=None,
+    #                                gender_filter='female',
     #                                transform=train_transform)
-    #test_dataset = PF16FaceDataset(csv_file, face_dir, 'A', 2500,
+    #test_dataset = MBTIFaceDataset(csv_file, face_dir, 'JP',
+    #                               sample_size_per_class,
     #                               class_target=True,
-    #                               gender_filter=None,
+    #                               gender_filter='female',
     #                               transform=train_transform)
+    train_dataset = PF16FaceDataset(csv_file, face_dir, 'A',
+                                    sample_size_per_class,
+                                    class_target=True,
+                                    gender_filter=None,
+                                    transform=train_transform)
+    test_dataset = PF16FaceDataset(csv_file, face_dir, 'A',
+                                   sample_size_per_class,
+                                   class_target=True,
+                                   gender_filter=None,
+                                   transform=train_transform)
 
     train_loader = torch.utils.data.DataLoader(train_dataset,
                                                batch_size=batch_size,
