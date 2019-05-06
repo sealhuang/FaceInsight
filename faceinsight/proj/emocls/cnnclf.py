@@ -47,7 +47,7 @@ class AffectNet(nn.Module):
         x = self.features(x)
         x = x.view(x.size(0), 256*6*6)
         x = self.classifier(x)
-        return x
+        return F.log_softmax(x, dim=1)
 
 
 def train(model, device, train_loader, optimizer, epoch, writer):
@@ -60,11 +60,11 @@ def train(model, device, train_loader, optimizer, epoch, writer):
         loss.backward()
         optimizer.step()
         writer.add_scalar('data/training-loss', loss,
-                          (epoch-1)*int(len(train_loader.sampler.indices)/64)+batch_idx+1)
+                          (epoch-1)*int(len(train_loader)/100)+batch_idx+1)
         if batch_idx % 15 == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\t Loss: {:.6f}'.format(
-                epoch, batch_idx*len(data), len(train_loader.sampler.indices),
-                100.*batch_idx*len(data)/len(train_loader.sampler.indices),
+                epoch, batch_idx*len(data), len(train_loader),
+                100.*(batch_idx+1)*len(data)/len(train_loader),
                 loss.item()))
 
 def test(model, device, test_loader, epoch, writer):
@@ -95,16 +95,16 @@ def test(model, device, test_loader, epoch, writer):
                          normalize=True, scale_each=True)
     writer.add_image('Image', x, epoch)
 
-    test_loss /= len(test_loader.sampler.indices)
+    test_loss /= len(test_loader)
     print('Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.1f}%)'.format(
-        test_loss, correct, len(test_loader.sampler.indices),
-        100.*correct/len(test_loader.sampler.indices)))
+        test_loss, correct, len(test_loader),
+        100.*correct/len(test_loader)))
     cm = confusion_matrix(np.concatenate(all_true), np.concatenate(all_pred))
     print(cm*1.0 / cm.sum(axis=1, keepdims=True))
     print('\n')
-    writer.add_scalar('data/test-accuracy', 100.*correct/len(test_loader.sampler.indices), epoch)
+    writer.add_scalar('data/test-accuracy', 100.*correct/len(test_loader),epoch)
 
-    return 100.*correct/len(test_loader.sampler.indices)
+    return 100.*correct/len(test_loader)
 
 def run_model():
     """Main function."""
@@ -127,7 +127,8 @@ def run_model():
             transforms.Resize(250),
             transforms.CenterCrop(224),
             transforms.ToTensor(),
-            normalize])}
+            normalize])
+    }
     dsets = {x: datasets.ImageFolder(os.path.join(data_dir, '%s_class'%(x)),
                                      data_transforms[x])
              for x in ['train', 'val']}
@@ -151,9 +152,9 @@ def run_model():
     optimizer = optim.Adam(model.parameters(), lr=0.0005)
 
     test_acc = []
-    for epoch in range(1, 231):
-        train(model, device, train_loader, optimizer, epoch, writer)
-        acc = test(model, device, test_loader, epoch, writer)
+    for epoch in range(1, 51):
+        train(model, device, dset_loaders['train'], optimizer, epoch, writer)
+        acc = test(model, device, dset_loaders['val'], epoch, writer)
         test_acc.append(acc)
 
     # save test accruacy
