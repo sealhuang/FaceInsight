@@ -227,7 +227,7 @@ def load_data(data_dir, sample_size_per_class, train_sampler, test_sampler,
                                    sample_size_per_class,
                                    class_target=True,
                                    gender_filter=None,
-                                   transform=train_transform)
+                                   transform=test_transform)
 
     train_loader = torch.utils.data.DataLoader(train_dataset,
                                                batch_size=batch_size,
