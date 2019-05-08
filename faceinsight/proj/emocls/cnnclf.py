@@ -148,8 +148,8 @@ def run_model():
     writer = SummaryWriter()
     #writer.add_graph(CNNNet3(2))
 
-    #optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.9)
-    optimizer = optim.Adam(model.parameters(), lr=0.0005)
+    optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
+    #optimizer = optim.Adam(model.parameters(), lr=0.0005)
 
     test_acc = []
     for epoch in range(1, 51):

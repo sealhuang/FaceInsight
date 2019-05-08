@@ -228,14 +228,14 @@ def make_multilabel_dataset(csv_info, img_dir, target_idxs):
         class_vals = [0 if idx in sorted_idx[:2000]
                       else (1 if idx in sorted_idx[-2000:] else 2)
                       for idx in range(len(factor_vals))]
-        print('s% samples in Class 0'%(np.sum(np.array(class_vals)==0)))
-        print('s% samples in Class 1'%(np.sum(np.array(class_vals)==1)))
-        print('s% samples in Class 2'%(np.sum(np.array(class_vals)==2)))
+        print('%s samples in Class 0'%(np.sum(np.array(class_vals)==0)))
+        print('%s samples in Class 1'%(np.sum(np.array(class_vals)==1)))
+        print('%s samples in Class 2'%(np.sum(np.array(class_vals)==2)))
         targets.append(class_vals)
 
     # convert targets from rows to columns
     targets = np.vstack(targets)
-    targets = targets.T.tolist()
+    targets = targets.T
     #print('%s images and %s targets'%(len(imgs), len(targets)))
     assert len(imgs)==len(targets)
  
