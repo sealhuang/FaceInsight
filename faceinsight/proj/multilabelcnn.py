@@ -164,6 +164,46 @@ class CNNNet4(nn.Module):
             outs.append(out)
         return outs
 
+class CNNNet5(nn.Module):
+    def __init__(self, target_info):
+        super(CNNNet5, self).__init__()
+        self.target_info = target_info
+        self.conv1 = nn.Conv2d(3, 32, kernel_size=11, stride=4, bias=True)
+        self.conv2 = nn.Conv2d(32, 96, kernel_size=5, stride=1, padding=2,
+                               bias=True)
+        self.conv3 = nn.Conv2d(96, 48, kernel_size=1, stride=1, bias=True)
+        self.conv4_bn = nn.BatchNorm2d(48)
+        self.fc1 = nn.Linear(8112, 1000, bias=True)
+        self.drop1 = nn.Dropout(p=0.5)
+        for c in target_info:
+            #setattr(self, 'drop_%s'%(c), nn.Dropout(p=0.5))
+            #setattr(self, 'fc_%s'%(c), nn.Linear(1000, 256, bias=True))
+            setattr(self, 'output_%s'%(c), nn.Linear(1000, target_info[c],
+                                                     bias=True))
+
+    def forward(self, x):
+        """Pass the input tensor through each of our operations."""
+        x = F.relu(self.conv1(x))
+        x = F.max_pool2d(x, 3, 2)
+        x = F.relu(self.conv2(x))
+        x = F.max_pool2d(x, 3, 2)
+        x = F.relu(self.conv3(x))
+        x = self.conv4_bn(x)
+        x = x.view(-1, 13*13*48)
+        x = F.relu(self.fc1(x))
+        x = self.drop1(x)
+        outs = list()
+        dir(self)
+        for c in self.target_info:
+            #drop_func = eval('self.drop_%s'%(c))
+            #fc_fun = eval('self.fc_%s'%(c))
+            out_fun = eval('self.output_%s'%(c))
+            #out = drop_func(x)
+            #out = F.relu(fc_fun(out))
+            out = F.log_softmax(out_fun(x), dim=1)
+            outs.append(out)
+        return outs
+
 
 def get_img_stats(csv_file, face_dir, batch_size, num_workers, pin_memory):
     """Get mean and std. of the images."""
@@ -349,7 +389,8 @@ def run_model(random_seed):
         # model config
         #model = CNNNet1(train_dataset.target_info).to(device)
         #model = CNNNet2(train_dataset.target_info).to(device)
-        model = CNNNet4(train_dataset.target_info).to(device)
+        #model = CNNNet4(train_dataset.target_info).to(device)
+        model = CNNNet5(train_dataset.target_info).to(device)
         # summary writer config
         writer = SummaryWriter()
         #writer.add_graph(CNNNet3(2))
