@@ -22,7 +22,7 @@ def run_model(random_seed):
     # define transforms
     test_transform = transforms.Compose([transforms.Resize(250),
                                          transforms.CenterCrop(227),
-                                         transforms.ToTensor())
+                                         transforms.ToTensor()])
 
     # load the dataset
     ds = PF16FaceDataset(csv_file, face_dir, 'A',
