@@ -332,8 +332,8 @@ def run_model():
     #writer.add_graph(CNNNet3(2))
 
     optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9,
-                          weight_decay=1e-6)
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.25)
+                          weight_decay=0)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.25)
     #optimizer = optim.Adam(model.parameters(), lr=0.0005)
 
     test_acc = []

@@ -91,18 +91,20 @@ def load_data(data_dir, sample_size_per_class, train_sampler, test_sampler,
     #                     num_workers=num_workers, pin_memory=pin_memory)
     
     # define transforms
-    normalize = transforms.Normalize(mean=[0.518, 0.493, 0.506],
-                                     std=[0.270, 0.254, 0.277])
+    #normalize = transforms.Normalize(mean=[0.518, 0.493, 0.506],
+    #                                 std=[0.270, 0.254, 0.277])
+    normalize = transforms.Normalize(mean=(0.507395516207, ),
+                                     std=(0.255128989415, ))
     #transforms.RandomResizedCrop(224, scale=(0.7, 0.9), ratio=(1.0, 1.0)),
     train_transform = transforms.Compose([transforms.Resize(250),
-                                          transforms.RandomCrop(227),
+                                          transforms.RandomCrop(224),
                                           transforms.ColorJitter(brightness=.05,
                                                                  saturation=.05),
                                           transforms.RandomHorizontalFlip(),
                                           transforms.ToTensor(),
                                           normalize])
     test_transform = transforms.Compose([transforms.Resize(250),
-                                         transforms.CenterCrop(227),
+                                         transforms.CenterCrop(224),
                                          transforms.ToTensor(),
                                          normalize])
 
@@ -163,7 +165,7 @@ def train(model, device, train_loader, optimizer, epoch, writer):
         loss.backward()
         optimizer.step()
         writer.add_scalar('data/training-loss', loss,
-                          (epoch-1)*int(len(train_loader.sampler.indices)/64)+batch_idx+1)
+                          (epoch-1)*int(len(train_loader.sampler.indices)/50)+batch_idx+1)
         if batch_idx % 15 == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\t Loss: {:.6f}'.format(
                 epoch, batch_idx*len(data), len(train_loader.sampler.indices),
@@ -193,8 +195,8 @@ def test(model, device, test_loader, epoch, writer):
     for name, param in model.named_parameters():
         writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch)
     params = model.state_dict()
-    #print(params)
-    x = vutils.make_grid(params['conv1.weight'].clone().cpu().data,
+    #print(params.keys())
+    x = vutils.make_grid(params['base_model.0.weight'].clone().cpu().data,
                          normalize=True, scale_each=True)
     writer.add_image('Image', x, epoch)
 
@@ -215,7 +217,7 @@ def run_model(random_seed):
 
     # load data for cross-validation
     data_dir = '/home/huanglj/proj'
-    sample_size_per_class = 1000
+    sample_size_per_class = 1500
     test_ratio = 0.1
     c1_sample_idx = range(sample_size_per_class)
     c2_sample_idx = range(sample_size_per_class)
@@ -238,7 +240,7 @@ def run_model(random_seed):
                                               sample_size_per_class,
                                               train_sampler,
                                               test_sampler,
-                                              batch_size=100,
+                                              batch_size=50,
                                               num_workers=25,
                                               pin_memory=True)
         # model training and eval
@@ -248,16 +250,21 @@ def run_model(random_seed):
                                 'model_vgg_face.pth')
         model_backbone.load_state_dict(torch.load(backbone_weights))
         model = CNNNet1(model_backbone, 2).to(device)
+        # grad config
+        for para in list(model.base_model.parameters()):
+            para.requires_grad = False
+
         # summary writer config
         writer = SummaryWriter()
-        #writer.add_graph(CNNNet3(2))
-
-        optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9,
+        optimizer = optim.SGD(model.classifier.parameters(),
+                              lr=0.002, momentum=0.9,
                               weight_decay=5e-5)
+        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20,gamma=0.2)
         #optimizer = optim.Adam(model.parameters(), lr=0.0005)
 
         test_acc = []
-        for epoch in range(1, 231):
+        for epoch in range(1, 31):
+            scheduler.step()
             train(model, device, train_loader, optimizer, epoch, writer)
             acc = test(model, device, test_loader, epoch, writer)
             test_acc.append(acc)
