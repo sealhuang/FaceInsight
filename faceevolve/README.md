@@ -5,14 +5,6 @@
   * "evolve" means unleash your greatness to be better and better. "LV" are capitalized to acknowledge the nurturing of Learning and Vision ([LV](http://www.lv-nus.org)) group, Nation University of Singapore (NUS).
 * This work was done during Jian Zhao served as a short-term "Texpert" Research Scientist at Tencent FiT DeepSea AI Lab, Shenzhen, China.
 
-|Author|Jian Zhao|
-|:---:|:---:|
-|Homepage|https://zhaoj9014.github.io|
-
-****
-## License
-
-The code of [face.evoLVe](#Introduction) is released under the MIT License.
 
 ****
 ## News
