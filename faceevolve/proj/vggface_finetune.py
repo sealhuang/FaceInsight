@@ -62,8 +62,9 @@ def get_img_stats(csv_file, face_dir, batch_size, num_workers, pin_memory):
 
     return mean, std
 
-def load_data(data_dir, sample_size_per_class, train_sampler, test_sampler,
-              batch_size, shuffle=True, num_workers=0, pin_memory=False):
+def load_data(factor, data_dir, sample_size_per_class,
+              train_sampler, test_sampler, batch_size, shuffle=True,
+              num_workers=0, pin_memory=False):
     """Utility function for loading and returning train and test
     multi-process iterators over the images.
 
@@ -132,12 +133,12 @@ def load_data(data_dir, sample_size_per_class, train_sampler, test_sampler,
     #                               class_target=True,
     #                               gender_filter='female',
     #                               transform=train_transform)
-    train_dataset = PF16FaceDataset(csv_file, face_dir, 'G',
+    train_dataset = PF16FaceDataset(csv_file, face_dir, factor,
                                     sample_size_per_class,
                                     class_target=True,
                                     gender_filter=None,
                                     transform=train_transform)
-    test_dataset = PF16FaceDataset(csv_file, face_dir, 'G',
+    test_dataset = PF16FaceDataset(csv_file, face_dir, factor,
                                    sample_size_per_class,
                                    class_target=True,
                                    gender_filter=None,
@@ -215,7 +216,7 @@ def test(model, criterion, device, test_loader, epoch, writer):
 
     return 100.*correct/len(test_loader.sampler.indices)
 
-def run_model(random_seed):
+def run_model(factor, random_seed):
     """Main function."""
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
@@ -240,7 +241,8 @@ def run_model(random_seed):
         c1_sample_idx = c1_sample_idx[split_idx:] + c1_sample_idx[:split_idx]
         c2_sample_idx = c2_sample_idx[split_idx:] + c2_sample_idx[:split_idx]
         # load data    
-        train_loader, test_loader = load_data(data_dir,
+        train_loader, test_loader = load_data(factor,
+                                              data_dir,
                                               sample_size_per_class,
                                               train_sampler,
                                               test_sampler,
@@ -290,9 +292,22 @@ def run_model(random_seed):
 def main():
     """Main function."""
     #seeds = [10, 25, 69, 30, 22, 91, 65, 83, 11, 8]
+    #factor_list = ['A', 'B', 'C', 'E', 'F', 'G', 'H', 'I', 'L', 'M', 'N',
+    #               'O', 'Q1', 'Q2', 'Q3', 'Q4', 'X1', 'X2', 'X3', 'X4',
+    #               'Y1', 'Y2', 'Y3', 'Y4']
     seeds = [10]
+    factor_list = ['H', 'I', 'L', 'M', 'N',
+                   'O', 'Q1', 'Q2', 'Q3', 'Q4', 'X1', 'X2', 'X3', 'X4',
+                   'Y1', 'Y2', 'Y3', 'Y4']
     for i in seeds:
-        run_model(i)
+        for f in factor_list:
+            print('Factor %s'%(f))
+            run_model(f, i)
+            # rename log files
+            os.system(' '.join(['mv', 'test_acc.csv',
+                                'fine_tune_%s_1500_celoss.csv'%(f.lower())]))
+            os.system(' '.join(['mv', 'runs',
+                                'fine_tune_%s_1500_combine'%(f.lower())]))
     
     #for i in range(50):
     #    seed = np.random.randint(100)
