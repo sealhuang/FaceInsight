@@ -397,6 +397,7 @@ def main():
     
 
 if __name__=='__main__':
-    cv_main()
+    #cv_main()
+    main()
 
 
