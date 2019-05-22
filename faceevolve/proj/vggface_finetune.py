@@ -337,7 +337,7 @@ def run_model(factor, random_seed):
                           lr=0.001, momentum=0.9)
     scheduler = optim.lr_scheduler.StepLR(optimizer,step_size=15,gamma=0.1)
     criterion = nn.CrossEntropyLoss(reduction='mean')
-    max_patience = 5
+    max_patience = 10
     patience_conut = 0
     max_acc = 0
     test_acc = []
@@ -354,7 +354,7 @@ def run_model(factor, random_seed):
             patience_count += 1
         # save model
         if patience_count==max_patience or epoch==30:
-            saved_model_file = 'finetuned_vggface_model4%s.pth'%(factor.lower())
+            saved_model_file = 'finetuned_vggface_model4%s_e%s.pth'%(factor.lower(), epoch)
             torch.save(best_model.state_dict(), saved_model_file)
             # save test accruacy
             with open('test_acc.csv', 'a+') as f:
