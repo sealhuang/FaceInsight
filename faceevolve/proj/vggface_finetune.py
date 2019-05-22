@@ -346,8 +346,8 @@ def run_model(factor, random_seed):
         train(model, criterion, device, train_loader, optimizer, epoch, writer)
         acc = test(model, criterion, device, val_loader, epoch, writer)
         test_acc.append(acc)
-        if test_acc > max_acc:
-            max_acc = test_acc
+        if acc > max_acc:
+            max_acc = acc
             patience_count = 0
             best_model = copy.deepcopy(model) 
         else:
