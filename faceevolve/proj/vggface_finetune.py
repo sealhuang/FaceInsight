@@ -343,7 +343,7 @@ def run_model(factor, random_seed):
     for epoch in range(1, 31):
         scheduler.step()
         train(model, criterion, device, train_loader, optimizer, epoch, writer)
-        acc = test(model, criterion, device, test_loader, epoch, writer)
+        acc = test(model, criterion, device, val_loader, epoch, writer)
         test_acc.append(acc)
         if test_acc > max_acc:
             max_acc = test_acc
