@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import os
 import numpy as np
+import copy
 import random
 import torch
 import torch.nn as nn
@@ -348,15 +349,17 @@ def run_model(factor, random_seed):
         if test_acc > max_acc:
             max_acc = test_acc
             patience_count = 0
+            best_model = copy.deepcopy(model) 
         else:
             patience_count += 1
         # save model
         if patience_count==max_patience or epoch==30:
             saved_model_file = 'finetuned_vggface_model4%s.pth'%(factor.lower())
-            torch.save(model.state_dict(), saved_model_file)
+            torch.save(best_model.state_dict(), saved_model_file)
             # save test accruacy
             with open('test_acc.csv', 'a+') as f:
                 f.write(','.join([str(item) for item in test_acc])+'\n')
+            break
     
     #writer.export_scalars_to_json('./all_scalars_%s.json'%(random_seed))
     writer.close()
