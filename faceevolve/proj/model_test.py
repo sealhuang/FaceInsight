@@ -42,7 +42,7 @@ def load_img(img_file):
 
     img = Image.open(img_file).convert('RGB')
     img = test_transform(img)
-    return img
+    return img.unsqueeze(0)
 
 def load_model(model_file, device):
     model_backbone = model_vgg_face.VGG_Face_torch
@@ -148,8 +148,8 @@ def align_face(args, crop_face_file):
     # specify size of aligned faces, align and crop with padding
     # due to the bounding box was expanding by a scalar, the `real` face size
     # should be corrected
-    scale = args.image_size * 1.0 /args.expand_scalar / 112.
-    offset = args.image_size * (args.expand_scalar - 1.1) / 2
+    scale = args.image_size * 1.0 /args.scaler / 112.
+    offset = args.image_size * (args.scaler - 1.1) / 2
     reference = get_reference_facial_points(default_square=True)*scale + offset
 
     output_dir = os.path.split(image_path)[0]
@@ -179,12 +179,11 @@ def align_face(args, crop_face_file):
         img_warped.save(output_filename)
         return output_filename
 
-def face_eval(face_file, factor, device):
+def face_eval(face_file, factor):
     # load image
     img_data = load_img(face_file)
 
-    device = torch.device(device)
-    #device = torch.device('cuda:0')
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     # load model
     ensemble_models = []
     for i in range(5):
@@ -200,17 +199,21 @@ def face_eval(face_file, factor, device):
     for model in ensemble_models:
         model.eval()
         data = img_data.to(device)
-        out = model(data)
-        print(out)
-
-
+        out = F.softmax(model(data), dim=1)
+        out = out.cpu().data.numpy()[0][1]
+        output.append(out)
+    print('Factor %s, score: %s'%(factor, np.mean(output)))
+    return np.mean(output)
 
 def main(args):
     crop_face_file = crop_face(args)
     if crop_face_file:
         aligned_face_file = align_face(args, crop_face_file)
-        #if aligned_face_file:
-        #    face_eval(aligned_face_file, 'A', 'cpu')
+        if aligned_face_file:
+            score = face_eval(aligned_face_file, 'A')
+            return score
+    else:
+        return None
 
 def parse_arguments(argv):
     parser = argparse.ArgumentParser()
@@ -239,6 +242,28 @@ def parse_arguments(argv):
                         action='store_true')
     return parser.parse_args(argv)
 
-if __name__ == '__main__':
-    main(parse_arguments(sys.argv[1:]))
+def batch_test():
+    root_dir = r'/Users/sealhuang/project/faceTraits/bnuData'
+    img_dir = os.path.join(root_dir, 'anony_pics')
+    test_file = os.path.join(root_dir, 'mbti_workbench', 'unique_mbti_ei.csv')
+    test_list = open(test_file).readlines()
+    test_list.pop(0)
+    test_list = [line.strip().split(',') for line in test_list]
+    test_score = []
+    for line in test_list[:2000]:
+        msked_id = int(line[0])
+        img_file = os.path.join(img_dir, format(msked_id, '012d')+'.jpg')
+        print(img_file)
+        argv = [img_file, '~/Downloads/test']
+        s = main(parse_arguments(argv))
+        if not s:
+            s = 'NaN'
+        test_score.append(s)
 
+        with open('mbti_test_score.csv', 'a+') as f:
+            f.write(','.join([line[0], line[1], str(s)])+'\n')
+
+
+if __name__ == '__main__':
+    #main(parse_arguments(sys.argv[1:]))
+    batch_test()

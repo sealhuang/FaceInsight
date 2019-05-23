@@ -428,12 +428,13 @@ def train_ensemble_model_sugar(factor, random_seed):
             if acc >= max_acc:
                 max_acc = acc
                 patience_count = 0
+                sel_epoch = epoch
                 best_model = copy.deepcopy(model)
             else:
                 patience_count += 1
             # save model
             if patience_count==max_patience or epoch==30:
-                saved_model_file = 'finetuned_vggface4%s_f%se%s.pth'%(factor.lower(), fold, epoch)
+                saved_model_file = 'finetuned_vggface4%s_f%se%s.pth'%(factor.lower(), fold, sel_epoch)
                 torch.save(best_model.state_dict(), saved_model_file)
                 # save test accruacy
                 with open('test_acc.csv', 'a+') as f:
