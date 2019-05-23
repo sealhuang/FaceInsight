@@ -217,7 +217,7 @@ def test(model, criterion, device, test_loader, epoch, writer):
 
     return 100.*correct/len(test_loader.sampler.indices)
 
-def run_model_cv(factor, random_seed):
+def model_test_cv_sugar(factor, random_seed):
     """Main function."""
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
@@ -289,7 +289,7 @@ def run_model_cv(factor, random_seed):
         #writer.export_scalars_to_json('./all_scalars_%s.json'%(random_seed))
         writer.close()
 
-def run_model(factor, random_seed):
+def train_model_sugar(factor, random_seed):
     """Main function."""
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
@@ -364,7 +364,86 @@ def run_model(factor, random_seed):
     #writer.export_scalars_to_json('./all_scalars_%s.json'%(random_seed))
     writer.close()
 
-def cv_main():
+def train_ensemble_model_sugar(factor, random_seed):
+    """Main function."""
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
+    # load data for cross-validation
+    data_dir = '/home/huanglj/proj'
+    sample_size_per_class = 1500
+    test_ratio = 0.2
+    c1_sample_idx = range(sample_size_per_class)
+    c2_sample_idx = range(sample_size_per_class)
+    split_idx = int(np.floor(sample_size_per_class * test_ratio))
+    # get training- and testing-samples
+    print('Random seed is %s'%(random_seed))
+    np.random.seed(random_seed)
+    np.random.shuffle(c1_sample_idx)
+    np.random.shuffle(c2_sample_idx)
+    # CV
+    for fold in range(int(1/test_ratio)):
+        print('Fold %s/%s'%(fold+1, int(1/test_ratio)))
+        train_sampler = SubsetRandomSampler(c1_sample_idx[split_idx:]+[i+sample_size_per_class for i in c2_sample_idx[split_idx:]])
+        val_sampler = SubsetRandomSampler(c1_sample_idx[:split_idx]+[i+sample_size_per_class for i in c2_sample_idx[:split_idx]])
+        c1_sample_idx = c1_sample_idx[split_idx:] + c1_sample_idx[:split_idx]
+        c2_sample_idx = c2_sample_idx[split_idx:] + c2_sample_idx[:split_idx]
+        # load data    
+        train_loader, val_loader = load_data(factor,
+                                             data_dir,
+                                             sample_size_per_class,
+                                             train_sampler,
+                                             val_sampler,
+                                             batch_size=50,
+                                             num_workers=25,
+                                             pin_memory=True)
+        # model training and eval
+        model_backbone = model_vgg_face.VGG_Face_torch
+        backbone_weights = os.path.join(
+                                os.path.dirname(model_vgg_face.__file__),
+                                'model_vgg_face.pth')
+        model_backbone.load_state_dict(torch.load(backbone_weights))
+        model = clsNet1(model_backbone, 2).to(device)
+
+        # summary writer config
+        writer = SummaryWriter()
+        optimizer = optim.SGD([
+                        {'params': model.base_model.parameters(),
+                         'weight_decay': 1e-8},
+                        {'params': model.classifier.parameters(),
+                         'weight_decay': 5e-8}
+                        ], lr=0.001, momentum=0.9)
+        scheduler = optim.lr_scheduler.StepLR(optimizer,step_size=15,gamma=0.1)
+        criterion = nn.CrossEntropyLoss(reduction='mean')
+
+        max_patience = 10
+        patience_count = 0
+        max_acc = 0
+        test_acc = []
+        for epoch in range(1, 31):
+            scheduler.step()
+            train(model, criterion, device, train_loader, optimizer, epoch,
+                  writer)
+            acc = test(model, criterion, device, val_loader, epoch, writer)
+            test_acc.append(acc)
+            if acc >= max_acc:
+                max_acc = acc
+                patience_count = 0
+                best_model = copy.deepcopy(model)
+            else:
+                patience_count += 1
+            # save model
+            if patience_count==max_patience or epoch==30:
+                saved_model_file = 'finetuned_vggface4%s_f%se%s.pth'%(factor.lower(), fold, epoch)
+                torch.save(best_model.state_dict(), saved_model_file)
+                # save test accruacy
+                with open('test_acc.csv', 'a+') as f:
+                    f.write(','.join([str(item) for item in test_acc])+'\n')
+                break
+ 
+        #writer.export_scalars_to_json('./all_scalars_%s.json'%(random_seed))
+        writer.close()
+
+def model_test_cv():
     """Main function."""
     #seeds = [10, 25, 69, 30, 22, 91, 65, 83, 11, 8]
     factor_list = ['A', 'B', 'C', 'E', 'F', 'G', 'H', 'I', 'L', 'M', 'N',
@@ -374,33 +453,46 @@ def cv_main():
     for i in seeds:
         for f in factor_list:
             print('Factor %s'%(f))
-            run_model_cv(f, i)
+            model_test_cv_sugar(f, i)
             # rename log files
             os.system(' '.join(['mv', 'test_acc.csv',
                                 'fine_tune_%s_1500_celoss.csv'%(f.lower())]))
             os.system(' '.join(['mv', 'runs',
                                 'fine_tune_%s_1500_combine'%(f.lower())]))
     
-def main():
+def train_model():
     """Main function."""
-    #seeds = [10, 25, 69, 30, 22, 91, 65, 83, 11, 8]
     factor_list = ['A', 'E', 'F', 'H', 'I', 'L', 'M', 'N',
                    'Q2', 'Q3', 'X1', 'X2', 'X3', 'X4',
                    'Y1', 'Y2', 'Y3']
-    seeds = [10]
-    for i in seeds:
-        for f in factor_list:
-            print('Factor %s'%(f))
-            run_model(f, i)
-            # rename log files
-            os.system(' '.join(['mv', 'test_acc.csv',
-                                'fine_tune_%s_1350.csv'%(f.lower())]))
-            os.system(' '.join(['mv', 'runs',
-                                'fine_tune_%s_1350'%(f.lower())]))
+    seed = 10
+    for f in factor_list:
+        print('Factor %s'%(f))
+        train_model_sugar(f, seed)
+        # rename log files
+        os.system(' '.join(['mv', 'test_acc.csv',
+                            'fine_tune_%s_1350.csv'%(f.lower())]))
+        os.system(' '.join(['mv', 'runs',
+                            'fine_tune_%s_1350'%(f.lower())]))
+    
+def train_ensemble_model():
+    """Main function."""
+    factor_list = ['A', 'E', 'F', 'H', 'I', 'L', 'M', 'N',
+                   'Q2', 'Q3', 'X1', 'X2', 'X3', 'X4',
+                   'Y1', 'Y2', 'Y3']
+    seed = 10
+    for f in factor_list:
+        print('Factor %s'%(f))
+        train_ensemble_model_sugar(f, seed)
+        # rename log files
+        os.system(' '.join(['mv', 'test_acc.csv',
+                            'finetuned_acc_%s_1500_cv.csv'%(f.lower())]))
+        os.system(' '.join(['mv', 'runs',
+                            'finetuned_log_%s_1500_cv'%(f.lower())]))
     
 
 if __name__=='__main__':
-    #cv_main()
-    main()
-
+    #model_test_cv()
+    #train_model()
+    train_ensemble_model()
 
