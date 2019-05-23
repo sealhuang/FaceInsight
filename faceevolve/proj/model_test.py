@@ -44,10 +44,10 @@ def load_img(img_file):
     img = test_transform(img)
     return img
 
-def load_model(model_file):
+def load_model(model_file, device):
     model_backbone = model_vgg_face.VGG_Face_torch
     model = clsNet1(model_backbone, 2)
-    model.load_state_dict(torch.load(model_file))
+    model.load_state_dict(torch.load(model_file, map_location=device))
     return model
 
 def get_square_crop_box(crop_box, box_scaler=1.0):
@@ -179,11 +179,12 @@ def align_face(args, crop_face_file):
         img_warped.save(output_filename)
         return output_filename
 
-def face_eval(face_file, factor):
+def face_eval(face_file, factor, device):
     # load image
     img_data = load_img(face_file)
 
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    device = torch.device(device)
+    #device = torch.device('cuda:0')
     # load model
     ensemble_models = []
     for i in range(5):
@@ -191,7 +192,7 @@ def face_eval(face_file, factor):
         file_list = os.listdir('.')
         model_file = [item for item in file_list
                         if item.startswith(model_file_prefix+'_f%s'%(i))][0]
-        model = load_model(model_file)
+        model = load_model(model_file, device)
         ensemble_models.append(model.to(device))
 
     output = []
@@ -209,7 +210,7 @@ def main(args):
     if crop_face_file:
         aligned_face_file = align_face(args, crop_face_file)
         #if aligned_face_file:
-        #    face_eval(aligned_face_file, 'A')
+        #    face_eval(aligned_face_file, 'A', 'cpu')
 
 def parse_arguments(argv):
     parser = argparse.ArgumentParser()
