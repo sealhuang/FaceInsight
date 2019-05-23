@@ -69,7 +69,7 @@ def crop_face(args):
     output_dir = os.path.expanduser(args.output_dir)
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    image_path = os.path.expanduser(args.inpit_img)
+    image_path = os.path.expanduser(args.input_img)
  
     print('Crop face from image ...')
     # minimum size of face
