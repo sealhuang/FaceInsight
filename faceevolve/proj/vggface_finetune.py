@@ -412,28 +412,30 @@ def train_ensemble_model_sugar(factor, random_seed):
                         {'params': model.classifier.parameters(),
                          'weight_decay': 5e-8}
                         ], lr=0.001, momentum=0.9)
-        scheduler = optim.lr_scheduler.StepLR(optimizer,step_size=20,gamma=0.1)
+        scheduler = optim.lr_scheduler.StepLR(optimizer,step_size=15,gamma=0.1)
         criterion = nn.CrossEntropyLoss(reduction='mean')
 
         max_patience = 15
         patience_count = 0
         max_acc = 0
         test_acc = []
-        for epoch in range(1, 45):
+        max_epoch = 45
+        for epoch in range(1, max_epoch+1):
             scheduler.step()
             train(model, criterion, device, train_loader, optimizer, epoch,
                   writer)
             acc = test(model, criterion, device, val_loader, epoch, writer)
             test_acc.append(acc)
-            if acc >= max_acc:
-                max_acc = acc
+            if acc >= (max_acc-0.5):
+                if acc>=max_acc:
+                    max_acc = acc
                 patience_count = 0
                 sel_epoch = epoch
                 best_model = copy.deepcopy(model)
             else:
                 patience_count += 1
             # save model
-            if patience_count==max_patience or epoch==30:
+            if patience_count==max_patience or epoch==max_epoch:
                 saved_model_file = 'finetuned_vggface4%s_f%se%s.pth'%(factor.lower(), fold, sel_epoch)
                 torch.save(best_model.state_dict(), saved_model_file)
                 # save test accruacy
