@@ -267,3 +267,4 @@ def batch_test():
 if __name__ == '__main__':
     #main(parse_arguments(sys.argv[1:]))
     batch_test()
+
