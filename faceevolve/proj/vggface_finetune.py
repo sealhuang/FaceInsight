@@ -412,7 +412,7 @@ def train_ensemble_model_sugar(factor, random_seed):
                         {'params': model.classifier.parameters(),
                          'weight_decay': 5e-8}
                         ], lr=0.001, momentum=0.9)
-        scheduler = optim.lr_scheduler.StepLR(optimizer,step_size=15,gamma=0.1)
+        scheduler = optim.lr_scheduler.StepLR(optimizer,step_size=20,gamma=0.1)
         criterion = nn.CrossEntropyLoss(reduction='mean')
 
         max_patience = 15
