@@ -415,11 +415,11 @@ def train_ensemble_model_sugar(factor, random_seed):
         scheduler = optim.lr_scheduler.StepLR(optimizer,step_size=15,gamma=0.1)
         criterion = nn.CrossEntropyLoss(reduction='mean')
 
-        max_patience = 10
+        max_patience = 15
         patience_count = 0
         max_acc = 0
         test_acc = []
-        for epoch in range(1, 31):
+        for epoch in range(1, 45):
             scheduler.step()
             train(model, criterion, device, train_loader, optimizer, epoch,
                   writer)
