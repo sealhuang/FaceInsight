@@ -250,7 +250,7 @@ def batch_test():
     test_list.pop(0)
     test_list = [line.strip().split(',') for line in test_list]
     test_score = []
-    for line in test_list[:2000]:
+    for line in test_list[:1000]:
         msked_id = int(line[0])
         img_file = os.path.join(img_dir, format(msked_id, '012d')+'.jpg')
         print(img_file)
@@ -265,6 +265,6 @@ def batch_test():
 
 
 if __name__ == '__main__':
-    #main(parse_arguments(sys.argv[1:]))
-    batch_test()
+    main(parse_arguments(sys.argv[1:]))
+    #batch_test()
 
