@@ -22,7 +22,23 @@ class regNet1(nn.Module):
     def __init__(self, base_model):
         super(regNet1, self).__init__()
         self.base_model = nn.Sequential(*list(base_model.children())[:-1])
-        self.regressor = nn.Linear(4096, 1)
+        self.regressor = nn.Sequential(
+                nn.Linear(4096, 1))
+
+    def forward(self, x):
+        """Pass the input tensor through each of our operations."""
+        x = self.base_model(x)
+        x = self.regressor(x)
+        return x
+
+class regNet2(nn.Module):
+    def __init__(self, base_model):
+        super(regNet2, self).__init__()
+        self.base_model = nn.Sequential(*list(base_model.children())[:-1])
+        self.regressor = nn.Sequential(
+                nn.Linear(4096, 2048),
+                nn.ReLU(),
+                nn.Linear(2048, 1))
 
     def forward(self, x):
         """Pass the input tensor through each of our operations."""
@@ -160,9 +176,7 @@ def train(model, criterion, device, train_loader, optimizer, epoch, writer):
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
         output = model(data)
-        print(output.size)
-        print(target.size)
-        loss = criterion(output, target)
+        loss = 10*criterion(output[:, 0], target.type(torch.cuda.FloatTensor))
         loss.backward()
         optimizer.step()
         writer.add_scalar('data/training-loss', loss,
@@ -183,9 +197,9 @@ def test(model, criterion, device, test_loader, epoch, writer):
             data, target = data.to(device), target.to(device)
             output = model(data)
             # sum up batch loss
-            part_loss = criterion(output, target).item()
+            part_loss = criterion(output[:, 0], target.type(torch.cuda.FloatTensor)).item()
             test_loss += part_loss * data.size(0)
-            all_pred.append(output.cpu().data.numpy())
+            all_pred.append(output.cpu().data.numpy()[:, 0])
             all_true.append(target.cpu().data.numpy())
     
     # plot model parameter hist
@@ -398,12 +412,12 @@ def train_ensemble_model_sugar(factor, random_seed):
                         {'params': model.base_model.parameters(),
                          'weight_decay': 1e-8},
                         {'params': model.regressor.parameters(),
-                         'weight_decay': 5e-10}
+                         'weight_decay': 1e-9}
                         ], lr=0.001, momentum=0.9)
         scheduler = optim.lr_scheduler.StepLR(optimizer,step_size=15,gamma=0.1)
         criterion = nn.MSELoss(reduction='mean')
 
-        max_patience = 15
+        max_patience = 20
         patience_count = 0
         max_corr = 0
         test_corr = []

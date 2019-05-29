@@ -410,7 +410,7 @@ def train_ensemble_model_sugar(factor, random_seed):
                         {'params': model.base_model.parameters(),
                          'weight_decay': 1e-8},
                         {'params': model.classifier.parameters(),
-                         'weight_decay': 5e-8}
+                         'weight_decay': 1e-7}
                         ], lr=0.001, momentum=0.9)
         scheduler = optim.lr_scheduler.StepLR(optimizer,step_size=15,gamma=0.1)
         criterion = nn.CrossEntropyLoss(reduction='mean')
@@ -480,9 +480,21 @@ def train_model():
     
 def train_ensemble_model():
     """Main function."""
-    factor_list = ['A', 'E', 'F', 'H', 'I', 'L', 'M', 'N',
-                   'Q2', 'Q3', 'X1', 'X2', 'X3', 'X4',
-                   'Y1', 'Y2', 'Y3']
+    # params
+    # A. base_model: weight_decay=1e-8, classifier: weight decay=5e-8,
+    #    lr=0.001, gamma=0.1
+    # X2. base_model: weight_decay=1e-8, classifier: weight decay=1e-7,
+    #    lr=0.001, gamma=0.2
+    # X3. base_model: weight_decay=1e-8, classifier: weight decay=1e-7,
+    #    lr=0.001, gamma=0.1
+    # L. base_model: weight_decay 1e-8, classifier: weight decay 5e-8,
+    #    lr=0.001, gamma=0.1
+    # ?E. base_model: weight_decay 1e-8, classifier: weight decay 5e-8, lr 0.001
+    # 
+    #factor_list = ['E', 'F', 'H', 'I', 'L', 'M', 'N',
+    #               'Q2', 'Q3', 'X1', 'X2', 'X3', 'X4',
+    #               'Y1', 'Y2', 'Y3']
+    factor_list = ['X3']
     seed = 10
     for f in factor_list:
         print('Factor %s'%(f))
