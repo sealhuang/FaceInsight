@@ -21,6 +21,7 @@ ensemble_model = load_ensemble_model(FACTOR)
 
 # initialize the app
 app = Flask(__name__, template_folder='./')
+app.secret_key = "super secret key"
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 def allowed_file(filename):
@@ -57,10 +58,13 @@ def upload_file():
                 aligned_face_file = align_face(crop_face_file, 224, 1.4)
                 if aligned_face_file:
                     score = face_eval(aligned_face_file, ensemble_model)
-
                     return render_template('result.html', pred=score,
                                            imgpath=url_for('uploaded_file',
-                                                           filename=filename))
+                                filename=os.path.basename(aligned_face_file)))
+            else:
+                flash('No face detected')
+                return redirect(request.url)
+
     return """
     <!doctype html>
     <title>Upload Face Image</title>
@@ -71,23 +75,9 @@ def upload_file():
     </form>
     """
 
-#@app.route("/uploader", methods=["GET", "POST"])
-#def get_image():
-#    if request.method == 'POST':
-#        f = request.files['file']
-#        sfname = 'static/images/'+str(secure_filename(f.filename))
-#        f.save(sfname)
-#
-#        clf = catdog.classifier()
-#        #clf.save_image(f.filename)
-#
-#        return render_template('result.html',
-#                               pred=clf.predict(sfname),
-#                               imgpath=sfname)
-
 
 #--------- RUN WEB APP SERVER ------------#
 # Start the app server on port 80
 # (The default website port)
-#app.run(host='127.0.0.1', port=5000, debug=True)
-app.run(host='192.168.0.152', port=5000, debug=True)
+app.run(host='127.0.0.1', port=5000, debug=True)
+#app.run(host='192.168.0.152', port=5000, debug=True)
