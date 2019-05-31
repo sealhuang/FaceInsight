@@ -50,8 +50,8 @@ def load_model(model_file, device):
     model.load_state_dict(torch.load(model_file, map_location=device))
     return model
 
-def get_square_crop_box(crop_box, box_scaler=1.0):
-    """Get square crop box based on bounding box and the expanding scaler.
+def get_square_crop_box(crop_box, box_scalar=1.0):
+    """Get square crop box based on bounding box and the expanding scalar.
     Return square_crop_box and the square length.
     """
     center_w = int((crop_box[0]+crop_box[2])/2)
@@ -59,27 +59,26 @@ def get_square_crop_box(crop_box, box_scaler=1.0):
     w = crop_box[2] - crop_box[0]
     h = crop_box[3] - crop_box[1]
     box_len = max(w, h)
-    delta = int(box_len*box_scaler/2)
+    delta = int(box_len*box_scalar/2)
     square_crop_box = (center_w-delta, center_h-delta,
                        center_w+delta+1, center_h+delta+1)
     return square_crop_box, 2*delta+1
 
-def crop_face(args):
+def crop_face(input_img, output_dir, minsize, scalar, image_size,
+              detect_multiple_faces=False):
+    image_path = os.path.expanduser(input_img)
     # output dir config
-    output_dir = os.path.expanduser(args.output_dir)
+    output_dir = os.path.expanduser(output_dir)
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    image_path = os.path.expanduser(args.input_img)
  
     print('Crop face from image ...')
-    # minimum size of face
-    minsize = args.min_face_size
 
     # returned bounding box
     #bounding_boxes_filename = os.path.join(output_dir, 'bounding_boxes.txt')
  
     filename = os.path.splitext(os.path.split(image_path)[1])[0]
-    output_filename = os.path.join(output_dir, filename+'.png')
+    output_filename = os.path.join(output_dir, 'cropped_'+filename+'.png')
     #print(image_path)
     # load image and process
     try:
@@ -96,7 +95,7 @@ def crop_face(args):
             img_size = np.asarray(img.size)
             #img_size = np.asarray(img.shape)[0:2]
             if nrof_faces>1:
-                if args.detect_multiple_faces:
+                if detect_multiple_faces:
                     for i in range(nrof_faces):
                         det_arr.append(np.squeeze(det[i]))
                 # if multiple faces found, we choose one face
@@ -114,7 +113,7 @@ def crop_face(args):
 
             for i, det in enumerate(det_arr):
                 det = np.squeeze(det)
-                bb, box_size = get_square_crop_box(det, args.scaler)
+                bb, box_size = get_square_crop_box(det, scalar)
                 # get the valid pixel index of cropped face
                 face_left = np.maximum(bb[0], 0)
                 face_top = np.maximum(bb[1], 0)
@@ -128,10 +127,10 @@ def crop_face(args):
                 w_start_idx = np.maximum(-1*bb[0], 0)
                 h_start_idx = np.maximum(-1*bb[1], 0)
                 new_img.paste(cropped,(w_start_idx,h_start_idx))
-                scaled = new_img.resize((args.image_size, args.image_size),
+                scaled = new_img.resize((image_size, image_size),
                                         Image.BILINEAR)
                 filename_base,file_extension = os.path.splitext(output_filename)
-                if args.detect_multiple_faces:
+                if detect_multiple_faces:
                     output_filename_n = "{}_{}{}".format(filename_base, i, file_extension)
                 else:
                     output_filename_n = "{}{}".format(filename_base, file_extension)
@@ -141,15 +140,15 @@ def crop_face(args):
             print('Unable to crop "%s"' % image_path)
             return None
 
-def align_face(args, crop_face_file):
-    image_path = crop_face_file
+def align_face(input_img, image_size, scalar):
+    image_path = input_img
     
     print('Align faces ...')
     # specify size of aligned faces, align and crop with padding
     # due to the bounding box was expanding by a scalar, the `real` face size
     # should be corrected
-    scale = args.image_size * 1.0 /args.scaler / 112.
-    offset = args.image_size * (args.scaler - 1.1) / 2
+    scale = image_size * 1.0 /scalar / 112.
+    offset = image_size * (scalar - 1.1) / 2
     reference = get_reference_facial_points(default_square=True)*scale + offset
 
     output_dir = os.path.split(image_path)[0]
@@ -173,16 +172,12 @@ def align_face(args, crop_face_file):
         warped_face = warp_and_crop_face(np.array(img),
                                          facial5points,
                                          reference,
-                                         crop_size=(args.image_size,
-                                                    args.image_size))
+                                         crop_size=(image_size, image_size))
         img_warped = Image.fromarray(warped_face)
         img_warped.save(output_filename)
         return output_filename
 
-def face_eval(face_file, factor):
-    # load image
-    img_data = load_img(face_file)
-
+def load_ensemble_model(factor):
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     # load model
     ensemble_models = []
@@ -194,23 +189,45 @@ def face_eval(face_file, factor):
         model = load_model(model_file, device)
         ensemble_models.append(model.to(device))
 
+    return ensemble_models
+
+def face_eval(face_file, ensemble_model):
+    # load image
+    img_data = load_img(face_file)
+
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     output = []
     # face eval
-    for model in ensemble_models:
+    for model in ensemble_model:
         model.eval()
         data = img_data.to(device)
         out = F.softmax(model(data), dim=1)
         out = out.cpu().data.numpy()[0][1]
         output.append(out)
-    print('Factor %s, score: %s'%(factor, np.mean(output)))
     return np.mean(output)
 
 def main(args):
-    crop_face_file = crop_face(args)
+    input_img = args.input_img
+    output_dir = args.output_dir
+    min_face_size = args.min_face_size
+    detect_multiple_faces = args.detect_multiple_faces
+    scalar = args.scalar
+    image_size = args.image_size
+
+    # load model
+    factor = 'A'
+    ensemble_model = load_ensemble_model(factor)
+
+    # crop face from input image
+    crop_face_file = crop_face(input_img, output_dir, min_face_size,
+                               scalar, image_size,
+                               detect_multiple_faces=detect_multiple_faces)
+
     if crop_face_file:
-        aligned_face_file = align_face(args, crop_face_file)
+        aligned_face_file = align_face(crop_face_file, image_size, scalar)
         if aligned_face_file:
-            score = face_eval(aligned_face_file, 'A')
+            score = face_eval(aligned_face_file, ensemble_model)
+            print('Factor %s, score: %s'%(factor, score))
             return score
     else:
         return None
@@ -232,7 +249,7 @@ def parse_arguments(argv):
                         type=int,
                         default=20,
                         help='Minimum face size in pixels (35 by default).')
-    parser.add_argument('--scaler',
+    parser.add_argument('--scalar',
                         type=float,
                         default=1.4,
                         help='expanding scaler for the bounding box (1.4 by default).')
@@ -260,11 +277,11 @@ def batch_test():
             s = 'NaN'
         test_score.append(s)
 
-        with open('mbti_test_score.csv', 'a+') as f:
+        with open('mbti_x2_test_score.csv', 'a+') as f:
             f.write(','.join([line[0], line[1], str(s)])+'\n')
 
 
 if __name__ == '__main__':
-    main(parse_arguments(sys.argv[1:]))
-    #batch_test()
+    #main(parse_arguments(sys.argv[1:]))
+    batch_test()
 
