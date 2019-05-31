@@ -183,7 +183,7 @@ def load_ensemble_model(factor):
     ensemble_models = []
     for i in range(5):
         model_file_prefix = 'finetuned_vggface4%s'%(factor.lower())
-        file_list = os.listdir('.')
+        file_list = os.listdir('./model_weights')
         model_file = [item for item in file_list
                         if item.startswith(model_file_prefix+'_f%s'%(i))][0]
         model = load_model(model_file, device)
