@@ -1,8 +1,13 @@
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import os
-import numpy as np
 from collections import OrderedDict
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -51,7 +56,8 @@ class PNet(nn.Module):
 
         # load model weights
         current_dir, _ = os.path.split(os.path.abspath(__file__))
-        weights = np.load(os.path.join(current_dir, 'weights', 'pnet.npy'))[()]
+        weights = np.load(os.path.join(current_dir, 'weights', 'pnet.npy'),
+                          allow_pickle=True)[()]
         for n, p in self.named_parameters():
             p.data = torch.FloatTensor(weights[n])
 
@@ -96,7 +102,8 @@ class RNet(nn.Module):
 
         # load model weights
         current_dir, _ = os.path.split(os.path.abspath(__file__))
-        weights = np.load(os.path.join(current_dir, 'weights', 'rnet.npy'))[()]
+        weights = np.load(os.path.join(current_dir, 'weights', 'rnet.npy'),
+                          allow_pickle=True)[()]
         for n, p in self.named_parameters():
             p.data = torch.FloatTensor(weights[n])
 
@@ -147,7 +154,8 @@ class ONet(nn.Module):
 
         # load model weights
         current_dir, _ = os.path.split(os.path.abspath(__file__))
-        weights = np.load(os.path.join(current_dir, 'weights', 'onet.npy'))[()]
+        weights = np.load(os.path.join(current_dir, 'weights', 'onet.npy'),
+                          allow_pickle=True)[()]
         for n, p in self.named_parameters():
             p.data = torch.FloatTensor(weights[n])
 

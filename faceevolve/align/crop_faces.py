@@ -2,10 +2,11 @@
 
 import os
 import sys
-import numpy as np
 import argparse
 import random
 from time import sleep
+
+import numpy as np
 from PIL import Image
 from scipy import misc
 

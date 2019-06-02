@@ -1,5 +1,9 @@
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import numpy as np
 from numpy.linalg import inv, norm, lstsq
 from numpy.linalg import matrix_rank as rank

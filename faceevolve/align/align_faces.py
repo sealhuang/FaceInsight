@@ -2,8 +2,9 @@
 
 import os
 import sys
-import numpy as np
 import argparse
+
+import numpy as np
 from PIL import Image
 
 from faceevolve.align import detect_faces

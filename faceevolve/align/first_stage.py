@@ -1,10 +1,16 @@
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 
-import numpy as np
+from __future__ import absolute_import
+from __future__ import print_function
+
 import math
+
+import numpy as np
 from PIL import Image
 import torch
+
 from .box_utils import nms, _preprocess
+
 
 # device config
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')

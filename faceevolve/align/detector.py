@@ -1,8 +1,12 @@
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 
+from __future__ import absolute_import
 from __future__ import division
+from __future__ import print_function
+
 import numpy as np
 import torch
+
 from .get_nets import PNet, RNet, ONet
 from .box_utils import nms, calibrate_box, get_image_boxes, convert_to_square
 from .first_stage import run_first_stage

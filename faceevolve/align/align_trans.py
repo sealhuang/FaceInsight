@@ -1,8 +1,13 @@
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import numpy as np
 import cv2
-from matlab_cp2tform import get_similarity_transform_for_cv2
+
+from .matlab_cp2tform import get_similarity_transform_for_cv2
 
 
 # reference facial points, a list of coordinates (x, y)
