@@ -268,6 +268,7 @@ def model_test_cv_sugar(factor, random_seed):
 
         # summary writer config
         writer = SummaryWriter()
+        writer.add_graph(model)
         optimizer = optim.SGD([
                         {'params': model.base_model.parameters(),
                          'weight_decay': 1e-8},
