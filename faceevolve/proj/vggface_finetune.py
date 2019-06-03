@@ -229,8 +229,8 @@ def model_test_cv_sugar(factor, random_seed):
     data_dir = '/home/huanglj/proj'
     sample_size_per_class = 1500
     test_ratio = 0.2
-    c1_sample_idx = np.arange(sample_size_per_class)
-    c2_sample_idx = np.arange(sample_size_per_class)
+    c1_sample_idx = np.arange(sample_size_per_class).tolist()
+    c2_sample_idx = np.arange(sample_size_per_class).tolist()
     split_idx = int(np.floor(sample_size_per_class * test_ratio))
     # get training- and testing-samples
     print('Random seed is %s'%(random_seed))
@@ -301,8 +301,8 @@ def train_model_sugar(factor, random_seed):
     data_dir = '/home/huanglj/proj'
     sample_size_per_class = 1500
     test_ratio = 0.1
-    c1_sample_idx = np.arange(sample_size_per_class)
-    c2_sample_idx = np.arange(sample_size_per_class)
+    c1_sample_idx = np.arange(sample_size_per_class).tolist()
+    c2_sample_idx = np.arange(sample_size_per_class).tolist()
     split_idx = int(np.floor(sample_size_per_class * test_ratio))
     # get training- and validation-samples
     print('Random seed is %s'%(random_seed))
@@ -376,8 +376,8 @@ def train_ensemble_model_sugar(factor, random_seed):
     data_dir = '/home/huanglj/proj'
     sample_size_per_class = 1500
     test_ratio = 0.2
-    c1_sample_idx = np.arange(sample_size_per_class)
-    c2_sample_idx = np.arange(sample_size_per_class)
+    c1_sample_idx = np.arange(sample_size_per_class).tolist()
+    c2_sample_idx = np.arange(sample_size_per_class).tolist()
     split_idx = int(np.floor(sample_size_per_class * test_ratio))
     # get training- and testing-samples
     print('Random seed is %s'%(random_seed))
