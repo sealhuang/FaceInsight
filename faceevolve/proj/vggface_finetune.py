@@ -193,7 +193,7 @@ def test(model, criterion, device, test_loader, epoch, writer):
             # sum up batch loss
             #test_loss += F.nll_loss(output, target, reduction='sum').item()
             part_loss = criterion(output, target).item()
-            test_loss += part_loss * data.size(0)
+            test_loss += part_loss.item() * data.size(0)
             # get the index of the max log-probability
             pred = output.argmax(dim=1, keepdim=False)
             #correct += pred.eq(target.view_as(pred)).sum().item()
@@ -502,12 +502,12 @@ def train_ensemble_model():
     #    lr=0.001, gamma=0.1
     # X4. base_model: weight_decay=1e-8, classifier: weight decay=5e-8,
     #    lr=0.001, gamma=0.1
+    # F. base_model: weight_decay=1e-8, classifier: weight decay=1e-8,
+    #    lr=0.001, gamma=0.1
     # ?E. base_model: weight_decay 1e-8, classifier: weight decay 5e-8, lr 0.001
     # 
-    #factor_list = ['E', 'F', 'H', 'I', 'L', 'M', 'N',
-    #               'Q2', 'Q3', 'X1', 'X2', 'X3', 'X4',
-    #               'Y1', 'Y2', 'Y3']
-    factor_list = ['N']
+    #factor_list = ['E', 'I', 'M', 'Q2', 'X1', 'Y1', 'Y2', 'Y3']
+    factor_list = ['F']
     seed = 10
     for f in factor_list:
         print('Factor %s'%(f))
