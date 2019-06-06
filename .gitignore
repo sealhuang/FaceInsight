@@ -1,6 +1,7 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
+*.so
 
 # tmp file
 .cache
@@ -10,4 +11,7 @@ __pycache__/
 # data files
 *.npy
 *.pth
+*.tar
+*.dat
+*.pkl
 

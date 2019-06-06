@@ -15,7 +15,7 @@ from torchvision import transforms
 import torchvision.utils as vutils
 from torch.utils.data.sampler import SubsetRandomSampler
 from tensorboardX import SummaryWriter
-from faceevolve.backbone import model_vgg_face
+from faceevolve.models import model_vgg_face
 
 
 class regNet1(nn.Module):

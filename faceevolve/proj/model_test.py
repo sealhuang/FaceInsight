@@ -11,7 +11,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import transforms
 import torchvision.utils as vutils
-from faceevolve.backbone import model_vgg_face
+from faceevolve.models import model_vgg_face
 from faceevolve.align import detect_faces
 from faceevolve.align.align_trans import get_reference_facial_points
 from faceevolve.align.align_trans import warp_and_crop_face
