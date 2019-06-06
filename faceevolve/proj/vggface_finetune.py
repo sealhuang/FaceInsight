@@ -193,7 +193,7 @@ def test(model, criterion, device, test_loader, epoch, writer):
             # sum up batch loss
             #test_loss += F.nll_loss(output, target, reduction='sum').item()
             part_loss = criterion(output, target).item()
-            test_loss += part_loss.item() * data.size(0)
+            test_loss += part_loss * data.size(0)
             # get the index of the max log-probability
             pred = output.argmax(dim=1, keepdim=False)
             #correct += pred.eq(target.view_as(pred)).sum().item()
