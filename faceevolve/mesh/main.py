@@ -20,18 +20,18 @@ import torch.backends.cudnn as cudnn
 import torchvision.transforms as transforms
 
 from faceevolve.models import mobilenet_v1
-from faceevolve.facemesh.ddfa import ToTensorGjz, NormalizeGjz
-from faceevolve.facemesh.inference import get_suffix
-from faceevolve.facemesh.inference import predict_68pts, predict_dense
-from faceevolve.facemesh.inference import parse_roi_box_from_bbox
-from faceevolve.facemesh.inference import parse_roi_box_from_landmark
-from faceevolve.facemesh.inference import crop_img, draw_landmarks
-from faceevolve.facemesh.inference import dump_to_ply, dump_vertex
-from faceevolve.facemesh.inference import get_colors, write_obj_with_colors
-from faceevolve.facemesh.estimate_pose import parse_pose
-from faceevolve.facemesh.cv_plot import plot_pose_box
-from faceevolve.facemesh.render import get_depths_image, cget_depths_image, cpncc
-from faceevolve.facemesh.paf import gen_img_paf
+from faceevolve.mesh.ddfa import ToTensorGjz, NormalizeGjz
+from faceevolve.mesh.inference import get_suffix
+from faceevolve.mesh.inference import predict_68pts, predict_dense
+from faceevolve.mesh.inference import parse_roi_box_from_bbox
+from faceevolve.mesh.inference import parse_roi_box_from_landmark
+from faceevolve.mesh.inference import crop_img, draw_landmarks
+from faceevolve.mesh.inference import dump_to_ply, dump_vertex
+from faceevolve.mesh.inference import get_colors, write_obj_with_colors
+from faceevolve.mesh.estimate_pose import parse_pose
+from faceevolve.mesh.cv_plot import plot_pose_box
+from faceevolve.mesh.render import get_depths_image, cget_depths_image, cpncc
+from faceevolve.mesh.paf import gen_img_paf
 
 STD_SIZE = 120
 
