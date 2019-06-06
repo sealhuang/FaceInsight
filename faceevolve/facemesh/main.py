@@ -45,7 +45,6 @@ def main(args):
     # load model weights
     model_dir = os.path.dirname(mobilenet_v1.__file__)
     checkpoint_fp = os.path.join(model_dir, '3ddfa_phase1_wpdc_vdc.pth.tar')
-    # TODO: map_location
     checkpoint = torch.load(checkpoint_fp,
                         map_location=lambda storage, loc: storage)['state_dict']
 

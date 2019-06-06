@@ -13,9 +13,9 @@ from .box_utils import nms, _preprocess
 
 
 # device config
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+#device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-def run_first_stage(image, net, scale, threshold):
+def run_first_stage(image, net, scale, threshold, device='cpu'):
     """Run P-Net, generate bounding boxes, and do NMS.
 
     Arguments:
@@ -26,6 +26,7 @@ def run_first_stage(image, net, scale, threshold):
         threshold: a float number,
             threshold on the probability of a face when generating
             bounding boxes from predictions of the net.
+        device: cpu or gpu
 
     Returns:
         a float numpy array of shape [n_boxes, 9],
@@ -38,7 +39,9 @@ def run_first_stage(image, net, scale, threshold):
     img = image.resize((int(sw), int(sh)), Image.BILINEAR)
     img = np.asarray(img, 'float32')
 
-    img = torch.FloatTensor(_preprocess(img)).to(device)
+    img = torch.FloatTensor(_preprocess(img))
+    if device=='gpu':
+        img = img.cuda()
     with torch.no_grad():
         output = net(img)
     probs = output[1].cpu().data.numpy()[0, 1, :, :]

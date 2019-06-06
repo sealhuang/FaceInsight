@@ -14,10 +14,11 @@ UPLOAD_FOLDER = os.path.expanduser('~/Downloads/uploads')
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER, mode=0o755)
 ALLOW_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
+DEVICE = 'cpu'
 
 # load model
 FACTOR = 'A'
-ensemble_model = load_ensemble_model(FACTOR)
+ensemble_model = load_ensemble_model(FACTOR, DEVICE)
 
 # initialize the app
 app = Flask(__name__, template_folder='./')
@@ -53,11 +54,12 @@ def upload_file():
             # eval
             crop_face_file = crop_face(saved_path, app.config['UPLOAD_FOLDER'],
                                        20, 1.4, 224,
-                                       detect_multiple_faces=False)
+                                       detect_multiple_faces=False,
+                                       device=DEVICE)
             if crop_face_file:
                 aligned_face_file = align_face(crop_face_file, 224, 1.4)
                 if aligned_face_file:
-                    score = face_eval(aligned_face_file, ensemble_model)
+                    score = face_eval(aligned_face_file, ensemble_model, DEVICE)
                     return render_template('result.html', pred=score,
                                            imgpath=url_for('uploaded_file',
                                 filename=os.path.basename(aligned_face_file)))
