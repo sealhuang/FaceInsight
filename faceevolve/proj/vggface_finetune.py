@@ -19,7 +19,7 @@ from sklearn.metrics import confusion_matrix
 #from tensorboardX import SummaryWriter
 from torch.utils.tensorboard import SummaryWriter
 
-from faceevolve.backbone import model_vgg_face
+from faceevolve.models import model_vgg_face
 from bnuclfdataset import PF16FaceDataset
 
 

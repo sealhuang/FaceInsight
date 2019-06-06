@@ -11,7 +11,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import transforms
 import torchvision.utils as vutils
-from faceevolve.backbone import model_vgg_face
+from faceevolve.models import model_vgg_face
 from faceevolve.align import detect_faces
 from faceevolve.align.align_trans import get_reference_facial_points
 from faceevolve.align.align_trans import warp_and_crop_face
@@ -47,7 +47,11 @@ def load_img(img_file):
 def load_model(model_file, device):
     model_backbone = model_vgg_face.VGG_Face_torch
     model = clsNet1(model_backbone, 2)
-    model.load_state_dict(torch.load(model_file, map_location=device))
+    model.load_state_dict(torch.load(model_file,
+                                     map_location=lambda storage, loc: storage))
+    if device=='gpu':
+        model = model.cuda()
+    model.eval()
     return model
 
 def get_square_crop_box(crop_box, box_scalar=1.0):
@@ -65,7 +69,7 @@ def get_square_crop_box(crop_box, box_scalar=1.0):
     return square_crop_box, 2*delta+1
 
 def crop_face(input_img, output_dir, minsize, scalar, image_size,
-              detect_multiple_faces=False):
+              detect_multiple_faces=False, device='cpu'):
     image_path = os.path.expanduser(input_img)
     # output dir config
     output_dir = os.path.expanduser(output_dir)
@@ -87,7 +91,8 @@ def crop_face(input_img, output_dir, minsize, scalar, image_size,
         print('{}: {}'.format(image_path, e))
         return None
     else:
-        bounding_boxes, _ = detect_faces(img, min_face_size=minsize)
+        bounding_boxes, _ = detect_faces(img, min_face_size=minsize,
+                                         device=device)
         nrof_faces = len(bounding_boxes)
         if nrof_faces>0:
             det = bounding_boxes[:, 0:4]
@@ -161,7 +166,7 @@ def align_face(input_img, image_size, scalar):
         print('{}: {}'.format(image_path, e))
         return None
     else:
-        _, landmarks = detect_faces(img)
+        _, landmarks = detect_faces(img, device='cpu')
 
         # If the landmarks cannot be detected, the img will be discarded
         if len(landmarks)==0: 
@@ -177,8 +182,8 @@ def align_face(input_img, image_size, scalar):
         img_warped.save(output_filename)
         return output_filename
 
-def load_ensemble_model(factor):
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+def load_ensemble_model(factor, device):
+    #device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     # load model
     ensemble_models = []
     for i in range(5):
@@ -187,20 +192,20 @@ def load_ensemble_model(factor):
         model_file = [os.path.join('./model_weights',item) for item in file_list
                         if item.startswith(model_file_prefix+'_f%s'%(i))][0]
         model = load_model(model_file, device)
-        ensemble_models.append(model.to(device))
+        ensemble_models.append(model)
 
     return ensemble_models
 
-def face_eval(face_file, ensemble_model):
+def face_eval(face_file, ensemble_model, device):
     # load image
-    img_data = load_img(face_file)
+    data = load_img(face_file)
 
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    #device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     output = []
     # face eval
     for model in ensemble_model:
-        model.eval()
-        data = img_data.to(device)
+        if device=='gpu':
+            data = data.cuda()
         out = F.softmax(model(data), dim=1)
         out = out.cpu().data.numpy()[0][1]
         output.append(out)
@@ -213,20 +218,22 @@ def main(args):
     detect_multiple_faces = args.detect_multiple_faces
     scalar = args.scalar
     image_size = args.image_size
+    device = args.mode
 
     # load model
     factor = 'A'
-    ensemble_model = load_ensemble_model(factor)
+    ensemble_model = load_ensemble_model(factor, device)
 
     # crop face from input image
     crop_face_file = crop_face(input_img, output_dir, min_face_size,
                                scalar, image_size,
-                               detect_multiple_faces=detect_multiple_faces)
+                               detect_multiple_faces=detect_multiple_faces,
+                               device=device)
 
     if crop_face_file:
         aligned_face_file = align_face(crop_face_file, image_size, scalar)
         if aligned_face_file:
-            score = face_eval(aligned_face_file, ensemble_model)
+            score = face_eval(aligned_face_file, ensemble_model, device)
             print('Factor %s, score: %s'%(factor, score))
             return score
     else:
@@ -253,6 +260,8 @@ def parse_arguments(argv):
                         type=float,
                         default=1.4,
                         help='expanding scaler for the bounding box (1.4 by default).')
+    parser.add_argument('--mode', default='cpu', type=str,
+                        help='cpu or gpu mode')
     parser.add_argument('--detect_multiple_faces',
                         default=False,
                         help='Detect and align multiple faces per image.',

@@ -67,7 +67,8 @@ def main(args):
                         print(errorMessage)
                     else:
                         bounding_boxes, _ = detect_faces(img,
-                                                         min_face_size=minsize)
+                                                         min_face_size=minsize,
+                                                         device=args.mode)
                         nrof_faces = len(bounding_boxes)
                         if nrof_faces>0:
                             det = bounding_boxes[:, 0:4]
@@ -152,6 +153,8 @@ def parse_arguments(argv):
                         type=float,
                         default=1.4,
                         help='expanding scaler for the bounding box (1.4 by default).')
+    parser.add_argument('--mode', default='cpu', type=str,
+                        help='cpu or gpu mode')
     parser.add_argument('--detect_multiple_faces',
                         default=False,
                         help='Detect and align multiple faces per image.',

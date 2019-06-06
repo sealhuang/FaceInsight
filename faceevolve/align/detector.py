@@ -13,7 +13,7 @@ from .first_stage import run_first_stage
 
 
 def detect_faces(image, min_face_size=20.0, thresholds=[0.6, 0.7, 0.8],
-                 nms_thresholds=[0.7, 0.7, 0.7]):
+                 nms_thresholds=[0.7, 0.7, 0.7], device='cpu'):
     """
     Arguments:
         image: an instance of PIL.Image.
@@ -26,11 +26,15 @@ def detect_faces(image, min_face_size=20.0, thresholds=[0.6, 0.7, 0.8],
         bounding boxes and facial landmarks.
     """
     # device config
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    #device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     # load models
-    pnet = PNet().to(device)
-    rnet = RNet().to(device)
-    onet = ONet().to(device)
+    pnet = PNet()
+    rnet = RNet()
+    onet = ONet()
+    if device=='gpu':
+        pnet = pnet.cuda()
+        rnet = rnet.cuda()
+        onet = onet.cuda()    
     onet.eval()
 
     # BUILD AN IMAGE PYRAMID
@@ -62,7 +66,8 @@ def detect_faces(image, min_face_size=20.0, thresholds=[0.6, 0.7, 0.8],
 
     # run P-Net on different scales
     for s in scales:
-        boxes = run_first_stage(image, pnet, scale=s, threshold=thresholds[0])
+        boxes = run_first_stage(image, pnet, scale=s, threshold=thresholds[0],
+                                device=device)
         bounding_boxes.append(boxes)
 
     # collect boxes (and offsets, and scores) from different scales
@@ -85,7 +90,9 @@ def detect_faces(image, min_face_size=20.0, thresholds=[0.6, 0.7, 0.8],
     # STAGE 2
 
     img_boxes = get_image_boxes(bounding_boxes, image, size=24)
-    img_boxes = torch.FloatTensor(img_boxes).to(device)
+    img_boxes = torch.FloatTensor(img_boxes)
+    if device=='gpu':
+        img_boxes = img_boxes.cuda()
     with torch.no_grad():
         output = rnet(img_boxes)
     offsets = output[0].cpu().data.numpy()  # shape [n_boxes, 4]
@@ -107,7 +114,9 @@ def detect_faces(image, min_face_size=20.0, thresholds=[0.6, 0.7, 0.8],
     img_boxes = get_image_boxes(bounding_boxes, image, size=48)
     if len(img_boxes) == 0: 
         return [], []
-    img_boxes = torch.FloatTensor(img_boxes).to(device)
+    img_boxes = torch.FloatTensor(img_boxes)
+    if device=='gpu':
+        img_boxes = img_boxes.cuda()
     with torch.no_grad():
         output = onet(img_boxes)
     landmarks = output[0].cpu().data.numpy()  # shape [n_boxes, 10]

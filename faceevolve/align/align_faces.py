@@ -48,7 +48,7 @@ def main(args):
                     errorMessage = '{}: {}'.format(image_path, e)
                     print(errorMessage)
                 else:
-                    _, landmarks = detect_faces(img)
+                    _, landmarks = detect_faces(img, device=args.mode)
 
                     # If the landmarks cannot be detected, the img will be discarded
                     if len(landmarks)==0: 
@@ -78,6 +78,8 @@ def parse_arguments(argv):
                         help='aligned faces size (crop and align with padding)')
     parser.add_argument('--expand_scalar', type=float, default=1.4,
                         help='expanding factor of bounding box')
+    parser.add_argument('--mode', default='cpu', type=str,
+                        help='gpu or cpu mode')
     args = parser.parse_args()
  
     return parser.parse_args(argv)
