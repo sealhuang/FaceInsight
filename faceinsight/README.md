@@ -15,7 +15,6 @@
 
 ****
 ### Introduction 
-:information_desk_person:
 
 <img src="https://github.com/ZhaoJ9014/face.evoLVe.PyTorch/blob/master/disp/Fig1.png" width="450px"/>  <img src="https://github.com/ZhaoJ9014/face.evoLVe.PyTorch/blob/master/disp/Fig17.png" width="400px"/>
 
@@ -26,7 +25,6 @@
 
 ****
 ### Pre-Requisites 
-:cake:
 
 * Linux or macOS
 * [Python 3.7](https://repo.continuum.io/archive/Anaconda3-2018.12-Linux-x86_64.sh) (for training \& validation) and [Python 2.7](https://repo.continuum.io/archive/Anaconda2-2018.12-Linux-x86_64.sh) (for visualization w/ tensorboardX)
@@ -41,7 +39,6 @@ While not required, for optimal performance it is **highly** recommended to run 
 
 ****
 ### Usage 
-:orange_book:
 
 * Clone the repo: `git clone https://github.com/ZhaoJ9014/face.evoLVe.PyTorch.git`.
 * `mkdir data checkpoint log` at appropriate directory to store your train/val/test data, checkpoints and training logs.
@@ -62,7 +59,6 @@ While not required, for optimal performance it is **highly** recommended to run 
 
 ****
 ### Face Alignment 
-:triangular_ruler:
 
 <img src="https://github.com/ZhaoJ9014/face.evoLVe.PyTorch/blob/master/disp/Fig2.png" width="900px"/>
 <img src="https://github.com/ZhaoJ9014/face.evoLVe.PyTorch/blob/master/disp/Fig3.png" width="500px"/>
@@ -93,7 +89,6 @@ While not required, for optimal performance it is **highly** recommended to run 
 
 ****
 ### Data Processing 
-:bar_chart:
 
 * Folder: ```./balance```
 * Remove low-shot data API (remove the low-shot classes with less than ```min_num``` samples in the training set ```root``` with the directory structure as demonstrated in Sec. [Usage](#Usage) for data balance and effective model training):
@@ -107,7 +102,6 @@ While not required, for optimal performance it is **highly** recommended to run 
 
 ****
 ### Training and Validation 
-:coffee:
 
 * Folder: ```./```
 * Configuration API (configurate your overall settings for training \& validation) ```config.py```:
@@ -461,7 +455,6 @@ While not required, for optimal performance it is **highly** recommended to run 
   
 ****
 ### Data Zoo 
-:tiger:
 
 |Database|Version|\#Identity|\#Image|\#Frame|\#Video|Download Link|
 |:---:|:----:|:-----:|:-----:|:-----:|:-----:|:-----:|
@@ -523,7 +516,6 @@ While not required, for optimal performance it is **highly** recommended to run 
 
 ****
 ### Model Zoo 
-:monkey:
 
 * Model
 
@@ -560,7 +552,6 @@ While not required, for optimal performance it is **highly** recommended to run 
 
 ****
 ### Achievement 
-:confetti_ball:
 
 * 2017 No.1 on ICCV 2017 MS-Celeb-1M Large-Scale Face Recognition [Hard Set](https://www.msceleb.org/leaderboard/iccvworkshop-c1)/[Random Set](https://www.msceleb.org/leaderboard/iccvworkshop-c1)/[Low-Shot Learning](https://www.msceleb.org/leaderboard/c2) Challenges. [WeChat News](http://mp.weixin.qq.com/s/-G94Mj-8972i2HtEcIZDpA), [NUS ECE News](http://ece.nus.edu.sg/drupal/?q=node/215), [NUS ECE Poster](https://zhaoj9014.github.io/pub/ECE_Poster.jpeg), [Award Certificate for Track-1](https://zhaoj9014.github.io/pub/MS-Track1.jpeg), [Award Certificate for Track-2](https://zhaoj9014.github.io/pub/MS-Track2.jpeg), [Award Ceremony](https://zhaoj9014.github.io/pub/MS-Awards.jpeg).
 * 2017 No.1 on National Institute of Standards and Technology (NIST) IARPA Janus Benchmark A (IJB-A) Unconstrained Face [Verification](https://zhaoj9014.github.io/pub/IJBA_11_report.pdf) challenge and [Identification](https://zhaoj9014.github.io/pub/IJBA_1N_report.pdf) challenge. [WeChat News](https://mp.weixin.qq.com/s/s9H_OXX-CCakrTAQUFDm8g).
@@ -577,68 +568,3 @@ While not required, for optimal performance it is **highly** recommended to run 
     * CACD-VS (Accuracy: 99.76%).
     * FG-NET (Rank1 Accuracy: 93.20%).
 
-****
-### Acknowledgement 
-:two_men_holding_hands:
-
-* This repo is inspired by [InsightFace.MXNet](https://github.com/deepinsight/insightface), [InsightFace.PyTorch](https://github.com/TreB1eN/InsightFace_Pytorch), [ArcFace.PyTorch](https://github.com/ronghuaiyang/arcface-pytorch), [MTCNN.MXNet](https://github.com/pangyupo/mxnet_mtcnn_face_detection) and [PretrainedModels.PyTorch](https://github.com/Cadene/pretrained-models.pytorch).
-* The work of Jian Zhao was partially supported by China Scholarship Council (CSC) grant 201503170248.
-* We would like to thank [Prof. Jiashi Feng](https://sites.google.com/site/jshfeng/), [Dr. Jianshu Li](https://sites.google.com/view/li-js), Mr. Yu Cheng (Learning and Vision group, National University of Singapore), Mr. Yuan Xin, Mr. Di Wu, Mr. Zhenyuan Shen, Mr. Jianwei Liu (Tencent FiT DeepSea AI Lab, China), [Prof. Ran He](http://www.nlpr.ia.ac.cn/english/irds/People/rhe.html), [Prof. Junliang Xing](http://people.ucas.ac.cn/~0051452?language=en), [Mr. Xiang Wu](http://alfredxiangwu.github.io/) (Institute of Automation, Chinese Academy of Sciences), [Prof. Guosheng Hu](https://www.linkedin.com/in/guosheng-hu-6801b333/) (AnyVision Inc., U.K.), [Dr. Lin Xiong](https://bruinxiong.github.io/xionglin.github.io/) (JD Digits AI Lab, U.S.), Miss Yi Cheng (Panasonic R\&D Center, Singapore) for helpful discussions.
-
-****
-### Citation 
-:bookmark_tabs:
-
-- Please consult and consider citing the following papers:
-
-
-      @article{zhao2018look,
-      title={Look Across Elapse: Disentangled Representation Learning and Photorealistic Cross-Age Face Synthesis for Age-Invariant Face Recognition},
-      author={Zhao, Jian and Cheng, Yu and Cheng, Yi and Yang, Yang and Lan, Haochong and Zhao, Fang and Xiong, Lin and Xu, Yan and Li, Jianshu and Pranata, Sugiri and others},
-      journal={AAAI},
-      year={2019}
-      }
-      
-      
-      @article{zhao20183d,
-      title={3D-Aided Dual-Agent GANs for Unconstrained Face Recognition},
-      author={Zhao, Jian and Xiong, Lin and Li, Jianshu and Xing, Junliang and Yan, Shuicheng and Feng, Jiashi},
-      journal={T-PAMI},
-      year={2018}
-      }
-      
-      
-      @inproceedings{zhao2018towards,
-      title={Towards Pose Invariant Face Recognition in the Wild},
-      author={Zhao, Jian and Cheng, Yu and Xu, Yan and Xiong, Lin and Li, Jianshu and Zhao, Fang and Jayashree, Karlekar and Pranata,         Sugiri and Shen, Shengmei and Xing, Junliang and others},
-      booktitle={CVPR},
-      pages={2207--2216},
-      year={2018}
-      }
-      
-      
-      @inproceedings{zhao2017dual,
-      title={Dual-agent gans for photorealistic and identity preserving profile face synthesis},
-      author={Zhao, Jian and Xiong, Lin and Jayashree, Panasonic Karlekar and Li, Jianshu and Zhao, Fang and Wang, Zhecan and Pranata,           Panasonic Sugiri and Shen, Panasonic Shengmei and Yan, Shuicheng and Feng, Jiashi},
-      booktitle={NIPS},
-      pages={66--76},
-      year={2017}
-      }
-      
-      
-      @inproceedings{zhao3d,
-      title={3D-Aided Deep Pose-Invariant Face Recognition},
-      author={Zhao, Jian and Xiong, Lin and Cheng, Yu and Cheng, Yi and Li, Jianshu and Zhou, Li and Xu, Yan and Karlekar, Jayashree and       Pranata, Sugiri and Shen, Shengmei and others},
-      booktitle={IJCAI},
-      pages={1184--1190},
-      year={2018}
-      }
-
-
-      @inproceedings{cheng2017know,
-      title={Know you at one glance: A compact vector representation for low-shot learning},
-      author={Cheng, Yu and Zhao, Jian and Wang, Zhecan and Xu, Yan and Jayashree, Karlekar and Shen, Shengmei and Feng, Jiashi},
-      booktitle={ICCVW},
-      pages={1924--1932},
-      year={2017}
-      }
