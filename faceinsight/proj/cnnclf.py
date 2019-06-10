@@ -223,7 +223,7 @@ def load_data(data_dir, sample_size_per_class, train_sampler, test_sampler,
     """
     #csv_file = os.path.join(data_dir, 'mbti_factors.csv')
     csv_file = os.path.join(data_dir, 'sel_16pf_factors.csv')
-    face_dir = os.path.join(data_dir, 'faces')
+    face_dir = os.path.join(data_dir, 'bnu_aligned_faces')
 
     # get image stats
     #m, s = get_img_stats(csv_file, face_dir, batch_size=batch_size, 
@@ -354,7 +354,7 @@ def run_model(random_seed):
 
     # load data for cross-validation
     data_dir = '/home/huanglj/proj'
-    sample_size_per_class = 1500
+    sample_size_per_class = 1000
     test_ratio = 0.1
     c1_sample_idx = range(sample_size_per_class)
     c2_sample_idx = range(sample_size_per_class)
@@ -377,13 +377,12 @@ def run_model(random_seed):
                                               sample_size_per_class,
                                               train_sampler,
                                               test_sampler,
-                                              batch_size=64,
+                                              batch_size=100,
                                               num_workers=25,
                                               pin_memory=True)
         # model training and eval
         #model = CNNNet4(2).to(device)
-        #model = CNNNet5(2).to(device)
-        model = CNNNet6(2).to(device)
+        model = CNNNet5(2).to(device)
         # summary writer config
         writer = SummaryWriter()
         #writer.add_graph(CNNNet3(2))

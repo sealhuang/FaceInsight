@@ -16,10 +16,9 @@ from torchvision import transforms
 import torchvision.utils as vutils
 from torch.utils.data.sampler import SubsetRandomSampler
 from sklearn.metrics import confusion_matrix
-#from tensorboardX import SummaryWriter
 from torch.utils.tensorboard import SummaryWriter
 
-from faceevolve.models import model_vgg_face
+from faceinsight.models import vggface
 from bnuclfdataset import PF16FaceDataset
 
 
@@ -255,10 +254,10 @@ def model_test_cv_sugar(factor, random_seed):
                                               num_workers=25,
                                               pin_memory=True)
         # model training and eval
-        model_backbone = model_vgg_face.VGG_Face_torch
+        model_backbone = vggface.VGG_Face
         backbone_weights = os.path.join(
-                                os.path.dirname(model_vgg_face.__file__),
-                                'model_vgg_face.pth')
+                                os.path.dirname(vggface.__file__),
+                                'vggface_weights.pth')
         model_backbone.load_state_dict(torch.load(backbone_weights))
         model = clsNet1(model_backbone, 2).to(device)
         #print(model.base_model)
@@ -323,9 +322,9 @@ def train_model_sugar(factor, random_seed):
                                          num_workers=25,
                                          pin_memory=True)
     # model training and eval
-    model_backbone = model_vgg_face.VGG_Face_torch
-    backbone_weights = os.path.join(os.path.dirname(model_vgg_face.__file__),
-                                    'model_vgg_face.pth')
+    model_backbone = vggface.VGG_Face
+    backbone_weights = os.path.join(os.path.dirname(vggface.__file__),
+                                    'vggface_weights.pth')
     model_backbone.load_state_dict(torch.load(backbone_weights))
     model = clsNet1(model_backbone, 2).to(device)
     #print(model.base_model)
@@ -402,10 +401,10 @@ def train_ensemble_model_sugar(factor, random_seed):
                                              num_workers=25,
                                              pin_memory=True)
         # model training and eval
-        model_backbone = model_vgg_face.VGG_Face_torch
+        model_backbone = vggface.VGG_Face
         backbone_weights = os.path.join(
-                                os.path.dirname(model_vgg_face.__file__),
-                                'model_vgg_face.pth')
+                                os.path.dirname(vggface.__file__),
+                                'vggface_weights.pth')
         model_backbone.load_state_dict(torch.load(backbone_weights))
         model = clsNet1(model_backbone, 2).to(device)
 

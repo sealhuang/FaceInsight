@@ -1,25 +1,5 @@
-# face.evoLVe: High-Performance Face Recognition Library based on PyTorch
-* Evolve to be more comprehensive, effective and efficient for face related analytics \& applications! ([WeChat News](https://mp.weixin.qq.com/s/V8VoyMqVvjblH358ozcWEg))
-* About the name:
-  * "face" means this repo is dedicated for face related analytics \& applications.
-  * "evolve" means unleash your greatness to be better and better. "LV" are capitalized to acknowledge the nurturing of Learning and Vision ([LV](http://www.lv-nus.org)) group, Nation University of Singapore (NUS).
-* This work was done during Jian Zhao served as a short-term "Texpert" Research Scientist at Tencent FiT DeepSea AI Lab, Shenzhen, China.
+# High-Performance Face Recognition Library based on PyTorch
 
-
-****
-## News
-
-:white_check_mark: **`CLOSED 23 Jan 2019`**: ~~We share the name lists and pair-wise overlapping lists of several widely-used face recognition datasets to help researchers/engineers quickly remove the overlapping parts between their own private datasets and the public datasets. Please refer to Sec. [Data Zoo](#Data-Zoo) for details.~~
-
-:white_check_mark: **`CLOSED 23 Jan 2019`**: ~~The current distributed training schema with multi-GPUs under PyTorch and other mainstream platforms parallels the backbone across multi-GPUs while relying on a single master to compute the final bottleneck (fully-connected/softmax) layer. This is not an issue for conventional face recognition with moderate number of identities. However, it struggles with large-scale face recognition, which requires recognizing millions of identities in the real world. The master can hardly hold the oversized final layer while the slaves still have redundant computation resource, leading to small-batch training or even failed training. To address this problem, we are developing a highly-elegant, effective and efficient distributed training schema with multi-GPUs under PyTorch, supporting not only the backbone, but also the head with the fully-connected (softmax) layer, to facilitate high-performance large-scale face recognition. We will added this support into our repo.~~
-
-:white_check_mark: **`CLOSED 22 Jan 2019`**: ~~We have released two feature extraction APIs for extracting features from pre-trained models, implemented with PyTorch build-in functions and OpenCV, respectively. Please check ```./util/extract_feature_v1.py``` and ```./util/extract_feature_v2.py```.~~
-
-:white_check_mark: **`CLOSED 22 Jan 2019`**: ~~We are fine-tuning our released [IR-50](https://arxiv.org/pdf/1512.03385.pdf) model on our private Asia face data, which will be released soon to facilitate high-performance Asia face recognition.~~
-
-:white_check_mark: **`CLOSED 21 Jan 2019`**: ~~We are training a better-performing [IR-50](https://arxiv.org/pdf/1512.03385.pdf) model on [MS-Celeb-1M_Align_112x112](https://arxiv.org/pdf/1607.08221.pdf), and will replace the current model soon.~~
-  
-****
 ## Contents
 * [Introduction](#Introduction)
 * [Pre-Requisites](#Pre-Requisites)
@@ -34,8 +14,6 @@
 * [Citation](#Citation)
 
 ****
-## face.evoLVe for High-Performance Face Recognition
-
 ### Introduction 
 :information_desk_person:
 

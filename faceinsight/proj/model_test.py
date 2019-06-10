@@ -11,10 +11,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import transforms
 import torchvision.utils as vutils
-from faceevolve.models import model_vgg_face
-from faceevolve.align import detect_faces
-from faceevolve.align.align_trans import get_reference_facial_points
-from faceevolve.align.align_trans import warp_and_crop_face
+from faceinsight.models import vggface
+from faceinsight.align import detect_faces
+from faceinsight.align.align_trans import get_reference_facial_points
+from faceinsight.align.align_trans import warp_and_crop_face
 
 class clsNet1(nn.Module):
     def __init__(self, base_model, class_num):
@@ -45,7 +45,7 @@ def load_img(img_file):
     return img.unsqueeze(0)
 
 def load_model(model_file, device):
-    model_backbone = model_vgg_face.VGG_Face_torch
+    model_backbone = vggface.VGG_Face
     model = clsNet1(model_backbone, 2)
     model.load_state_dict(torch.load(model_file,
                                      map_location=lambda storage, loc: storage))

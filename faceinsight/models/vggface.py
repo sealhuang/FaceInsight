@@ -34,7 +34,7 @@ class LambdaReduce(LambdaBase):
 
 # VGG Face model
 # input size: 224x224x3
-VGG_Face_torch = nn.Sequential(
+VGG_Face = nn.Sequential(
         # block 1-1
         nn.Conv2d(3, 64, (3, 3), (1, 1), (1, 1)),
         nn.ReLU(),

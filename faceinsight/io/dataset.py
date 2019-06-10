@@ -3,6 +3,7 @@
 """Dataset utils for building the face recognition network.
 """
 
+from __future__ import absolute_import
 from __future__ import print_function
 
 import os

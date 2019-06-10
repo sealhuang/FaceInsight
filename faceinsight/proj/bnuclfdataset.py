@@ -22,6 +22,7 @@ def make_dataset(csv_info, img_dir, target_idx, sample_num_per_end,
         factors.append(float(line[target_idx]))
         imgs.append(img)
     sorted_idx = np.argsort(factors)
+    max_val = np.max(factors)
     sorted_factors = []
     sorted_imgs = []
     for i in range(len(sorted_idx)):
@@ -46,12 +47,12 @@ def make_dataset(csv_info, img_dir, target_idx, sample_num_per_end,
         if class_target:
             samples.append((sorted_imgs[i], 0))
         else:
-            samples.append((sorted_imgs[i], sorted_factors[i]))
+            samples.append((sorted_imgs[i], sorted_factors[i]*1.0/max_val))
     for i in range(sample_num_per_end):
         if class_target:
             samples.append((sorted_imgs[-i], 1))
         else:
-            samples.append((sorted_imgs[-i], sorted_factors[-i]))
+            samples.append((sorted_imgs[-i], sorted_factors[-i]*1.0/max_val))
 
     return samples
 

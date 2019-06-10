@@ -14,10 +14,11 @@ def run_model(factor_name):
     """Main function."""
 
     # load data for cross-validation
-    data_dir = '/home/huanglj/proj'
-    csv_file = os.path.join(data_dir, 'sel_16pf_factors.csv')
-    face_dir = os.path.join(data_dir, 'faces')
-    sample_size_per_class = 1000
+    data_dir = '/Users/sealhuang/project/faceTraits/bnuData'
+    #data_dir = '/home/huanglj/proj'
+    csv_file = os.path.join(data_dir, '16pf_workbench', 'sel_16pf_factors.csv')
+    face_dir = os.path.join(data_dir, 'aligned_faces')
+    sample_size_per_class = 50
     #factor_name = 'C'
  
     # define transforms
@@ -29,7 +30,7 @@ def run_model(factor_name):
     ds = PF16FaceDataset(csv_file, face_dir, factor_name,
                          sample_size_per_class,
                          class_target=True,
-                         gender_filter='female',
+                         gender_filter='male',
                          transform=test_transform)
 
     ds_loader = torch.utils.data.DataLoader(ds,
@@ -61,7 +62,7 @@ def run_model(factor_name):
     con = (con - con.min()) / (con.max() - con.min())
     axarr[2].imshow(con)
 
-    f.savefig('female_%s_foretypr.png'%(factor_name))
+    f.savefig('male_%s_foretype.png'%(factor_name))
 
 def main():
     factors = ['A', 'B', 'C', 'E', 'F', 'G', 'H', 'I', 'L', 'M', 'N',
