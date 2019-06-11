@@ -10,7 +10,7 @@ import numpy as np
 from PIL import Image
 from scipy import misc
 
-from faceevolve.align import detect_faces
+from faceevolve.detection import detect_faces
 from faceevolve.io.dataset import get_dataset
 
 

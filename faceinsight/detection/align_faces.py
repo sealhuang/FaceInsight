@@ -7,9 +7,9 @@ import argparse
 import numpy as np
 from PIL import Image
 
-from faceevolve.align import detect_faces
-from faceevolve.align.align_trans import get_reference_facial_points
-from faceevolve.align.align_trans import warp_and_crop_face
+from faceevolve.detection import detect_faces
+from faceevolve.detection.align_trans import get_reference_facial_points
+from faceevolve.detection.align_trans import warp_and_crop_face
 from faceevolve.io.dataset import get_dataset
 
 def main(args):

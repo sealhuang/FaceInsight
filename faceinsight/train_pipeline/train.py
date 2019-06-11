@@ -1,54 +1,78 @@
+# vi: set ft=python sts=4 ts=4 sw=4 et:
+
+from __future__ import absolute_import
+from __future__ import print_function
+from __future__ import division
+
+import os
+
+from tqdm import tqdm
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
+from torch.utils.tensorboard import SummaryWriter
 
 from config import configurations
-from backbone.model_resnet import ResNet_50, ResNet_101, ResNet_152
-from backbone.model_irse import IR_50, IR_101, IR_152, IR_SE_50, IR_SE_101, IR_SE_152
-from head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
-from loss.focal import FocalLoss
+from faceinsight.models.resnet_models import ResNet_50, ResNet_101, ResNet_152
+from faceinsight.models.irse_models import IR_50, IR_101, IR_152
+from faceinsight.models.irse_models import IR_SE_50, IR_SE_101, IR_SE_152
+from faceinsight.head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
+from faceinsight.loss.focal import FocalLoss
 from util.utils import make_weights_for_balanced_classes, get_val_data, separate_irse_bn_paras, separate_resnet_bn_paras, warm_up_lr, schedule_lr, perform_val, get_time, buffer_val, AverageMeter, accuracy
-
-from tensorboardX import SummaryWriter
-from tqdm import tqdm
-import os
 
 
 if __name__ == '__main__':
-
     #======= hyperparameters & data loaders =======#
     cfg = configurations[1]
 
-    SEED = cfg['SEED'] # random seed for reproduce results
+    # random seed for reproduce results
+    SEED = cfg['SEED']
     torch.manual_seed(SEED)
 
-    DATA_ROOT = cfg['DATA_ROOT'] # the parent root where your train/val/test data are stored
-    MODEL_ROOT = cfg['MODEL_ROOT'] # the root to buffer your checkpoints
-    LOG_ROOT = cfg['LOG_ROOT'] # the root to log your train/val status
-    BACKBONE_RESUME_ROOT = cfg['BACKBONE_RESUME_ROOT'] # the root to resume training from a saved checkpoint
-    HEAD_RESUME_ROOT = cfg['HEAD_RESUME_ROOT']  # the root to resume training from a saved checkpoint
+    # the parent root where your train/val/test data are stored
+    DATA_ROOT = cfg['DATA_ROOT'] 
+    # the root to buffer your checkpoints
+    MODEL_ROOT = cfg['MODEL_ROOT']
+    # the root to log your train/val status
+    LOG_ROOT = cfg['LOG_ROOT']
+    # the root to resume training from a saved checkpoint
+    BACKBONE_RESUME_ROOT = cfg['BACKBONE_RESUME_ROOT']
+    # the root to resume training from a saved checkpoint
+    HEAD_RESUME_ROOT = cfg['HEAD_RESUME_ROOT']
 
-    BACKBONE_NAME = cfg['BACKBONE_NAME'] # support: ['ResNet_50', 'ResNet_101', 'ResNet_152', 'IR_50', 'IR_101', 'IR_152', 'IR_SE_50', 'IR_SE_101', 'IR_SE_152']
-    HEAD_NAME = cfg['HEAD_NAME'] # support:  ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
-    LOSS_NAME = cfg['LOSS_NAME'] # support: ['Focal', 'Softmax']
+    # support: ['ResNet_50', 'ResNet_101', 'ResNet_152',
+    #           'IR_50', 'IR_101', 'IR_152',
+    #           'IR_SE_50', 'IR_SE_101', 'IR_SE_152']
+    BACKBONE_NAME = cfg['BACKBONE_NAME']
+    # support:  ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
+    HEAD_NAME = cfg['HEAD_NAME']
+    # support: ['Focal', 'Softmax']
+    LOSS_NAME = cfg['LOSS_NAME']
 
     INPUT_SIZE = cfg['INPUT_SIZE']
-    RGB_MEAN = cfg['RGB_MEAN'] # for normalize inputs
+    # for normalize inputs
+    RGB_MEAN = cfg['RGB_MEAN']
     RGB_STD = cfg['RGB_STD']
-    EMBEDDING_SIZE = cfg['EMBEDDING_SIZE'] # feature dimension
+    # feature dimension
+    EMBEDDING_SIZE = cfg['EMBEDDING_SIZE']
     BATCH_SIZE = cfg['BATCH_SIZE']
-    DROP_LAST = cfg['DROP_LAST'] # whether drop the last batch to ensure consistent batch_norm statistics
-    LR = cfg['LR'] # initial LR
+    # whether drop the last batch to ensure consistent batch_norm statistics
+    DROP_LAST = cfg['DROP_LAST']
+    # initial LR
+    LR = cfg['LR']
     NUM_EPOCH = cfg['NUM_EPOCH']
     WEIGHT_DECAY = cfg['WEIGHT_DECAY']
     MOMENTUM = cfg['MOMENTUM']
-    STAGES = cfg['STAGES'] # epoch stages to decay learning rate
+    # epoch stages to decay learning rate
+    STAGES = cfg['STAGES']
 
     DEVICE = cfg['DEVICE']
-    MULTI_GPU = cfg['MULTI_GPU'] # flag to use multiple GPUs
-    GPU_ID = cfg['GPU_ID'] # specify your GPU ids
+    # flag to use multiple GPUs
+    MULTI_GPU = cfg['MULTI_GPU']
+    # specify your GPU ids
+    GPU_ID = cfg['GPU_ID']
     PIN_MEMORY = cfg['PIN_MEMORY']
     NUM_WORKERS = cfg['NUM_WORKERS']
     print("=" * 60)
@@ -56,32 +80,40 @@ if __name__ == '__main__':
     print(cfg)
     print("=" * 60)
 
-    writer = SummaryWriter(LOG_ROOT) # writer for buffering intermedium results
+    # writer for buffering intermedium results
+    writer = SummaryWriter(LOG_ROOT)
 
-    train_transform = transforms.Compose([ # refer to https://pytorch.org/docs/stable/torchvision/transforms.html for more build-in online data augmentation
-        transforms.Resize([int(128 * INPUT_SIZE[0] / 112), int(128 * INPUT_SIZE[0] / 112)]), # smaller side resized
+    # image preprocessing for training image
+    train_transform = transforms.Compose([
+        transforms.Resize([int(128 * INPUT_SIZE[0] / 112),
+                           int(128 * INPUT_SIZE[0] / 112)]),
         transforms.RandomCrop([INPUT_SIZE[0], INPUT_SIZE[1]]),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
-        transforms.Normalize(mean = RGB_MEAN,
-                             std = RGB_STD),
+        transforms.Normalize(mean=RGB_MEAN, std=RGB_STD),
     ])
 
-    dataset_train = datasets.ImageFolder(os.path.join(DATA_ROOT, 'imgs'), train_transform)
+    dataset_train = datasets.ImageFolder(os.path.join(DATA_ROOT, 'imgs'),
+                                         train_transform)
 
     # create a weighted random sampler to process imbalanced data
-    weights = make_weights_for_balanced_classes(dataset_train.imgs, len(dataset_train.classes))
+    weights = make_weights_for_balanced_classes(dataset_train.imgs,
+                                                len(dataset_train.classes))
     weights = torch.DoubleTensor(weights)
-    sampler = torch.utils.data.sampler.WeightedRandomSampler(weights, len(weights))
+    sampler = torch.utils.data.sampler.WeightedRandomSampler(weights,
+                                                             len(weights))
 
-    train_loader = torch.utils.data.DataLoader(
-        dataset_train, batch_size = BATCH_SIZE, sampler = sampler, pin_memory = PIN_MEMORY,
-        num_workers = NUM_WORKERS, drop_last = DROP_LAST
-    )
+    train_loader = torch.utils.data.DataLoader(dataset_train,
+                                               batch_size=BATCH_SIZE,
+                                               sampler=sampler,
+                                               pin_memory=PIN_MEMORY,
+                                               num_workers=NUM_WORKERS,
+                                               drop_last=DROP_LAST)
 
     NUM_CLASS = len(train_loader.dataset.classes)
     print("Number of Training Classes: {}".format(NUM_CLASS))
 
+    # XXX: download the listed image database
     lfw, cfp_ff, cfp_fp, agedb, calfw, cplfw, vgg2_fp, lfw_issame, cfp_ff_issame, cfp_fp_issame, agedb_issame, calfw_issame, cplfw_issame, vgg2_fp_issame = get_val_data(DATA_ROOT)
 
 
@@ -101,10 +133,18 @@ if __name__ == '__main__':
     print("{} Backbone Generated".format(BACKBONE_NAME))
     print("=" * 60)
 
-    HEAD_DICT = {'ArcFace': ArcFace(in_features = EMBEDDING_SIZE, out_features = NUM_CLASS, device_id = GPU_ID),
-                 'CosFace': CosFace(in_features = EMBEDDING_SIZE, out_features = NUM_CLASS, device_id = GPU_ID),
-                 'SphereFace': SphereFace(in_features = EMBEDDING_SIZE, out_features = NUM_CLASS, device_id = GPU_ID),
-                 'Am_softmax': Am_softmax(in_features = EMBEDDING_SIZE, out_features = NUM_CLASS, device_id = GPU_ID)}
+    HEAD_DICT = {'ArcFace': ArcFace(in_features=EMBEDDING_SIZE,
+                                    out_features=NUM_CLASS,
+                                    device_id=GPU_ID),
+                 'CosFace': CosFace(in_features=EMBEDDING_SIZE,
+                                    out_features=NUM_CLASS,
+                                    device_id=GPU_ID),
+                 'SphereFace': SphereFace(in_features=EMBEDDING_SIZE,
+                                          out_features=NUM_CLASS,
+                                          device_id=GPU_ID),
+                 'Am_softmax': Am_softmax(in_features=EMBEDDING_SIZE,
+                                          out_features=NUM_CLASS,
+                                          device_id=GPU_ID)}
     HEAD = HEAD_DICT[HEAD_NAME]
     print("=" * 60)
     print(HEAD)
@@ -119,13 +159,18 @@ if __name__ == '__main__':
     print("{} Loss Generated".format(LOSS_NAME))
     print("=" * 60)
 
+    # separate batch_norm parameters from others; do not do weight decay
+    # for batch_norm parameters to improve the generalizability
     if BACKBONE_NAME.find("IR") >= 0:
-        backbone_paras_only_bn, backbone_paras_wo_bn = separate_irse_bn_paras(BACKBONE) # separate batch_norm parameters from others; do not do weight decay for batch_norm parameters to improve the generalizability
+        backbone_paras_only_bn, backbone_paras_wo_bn = separate_irse_bn_paras(BACKBONE)
         _, head_paras_wo_bn = separate_irse_bn_paras(HEAD)
     else:
-        backbone_paras_only_bn, backbone_paras_wo_bn = separate_resnet_bn_paras(BACKBONE) # separate batch_norm parameters from others; do not do weight decay for batch_norm parameters to improve the generalizability
+        backbone_paras_only_bn, backbone_paras_wo_bn = separate_resnet_bn_paras(BACKBONE)
         _, head_paras_wo_bn = separate_resnet_bn_paras(HEAD)
-    OPTIMIZER = optim.SGD([{'params': backbone_paras_wo_bn + head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}, {'params': backbone_paras_only_bn}], lr = LR, momentum = MOMENTUM)
+    OPTIMIZER = optim.SGD([{'params': backbone_paras_wo_bn + head_paras_wo_bn,
+                            'weight_decay': WEIGHT_DECAY},
+                           {'params': backbone_paras_only_bn}],
+                          lr=LR, momentum=MOMENTUM)
     print("=" * 60)
     print(OPTIMIZER)
     print("Optimizer Generated")
@@ -145,7 +190,7 @@ if __name__ == '__main__':
 
     if MULTI_GPU:
         # multi-GPU setting
-        BACKBONE = nn.DataParallel(BACKBONE, device_ids = GPU_ID)
+        BACKBONE = nn.DataParallel(BACKBONE, device_ids=GPU_ID)
         BACKBONE = BACKBONE.to(DEVICE)
     else:
         # single-GPU setting
@@ -153,15 +198,20 @@ if __name__ == '__main__':
 
 
     #======= train & validation & save checkpoint =======#
-    DISP_FREQ = len(train_loader) // 100 # frequency to display training loss & acc
+    # frequency to display training loss & acc
+    DISP_FREQ = len(train_loader) // 100
 
-    NUM_EPOCH_WARM_UP = NUM_EPOCH // 25  # use the first 1/25 epochs to warm up
-    NUM_BATCH_WARM_UP = len(train_loader) * NUM_EPOCH_WARM_UP  # use the first 1/25 epochs to warm up
-    batch = 0  # batch index
-
-    for epoch in range(NUM_EPOCH): # start training process
-        
-        if epoch == STAGES[0]: # adjust LR for each training stage after warm up, you can also choose to adjust LR manually (with slight modification) once plaueau observed
+    # use the first 1/25 epochs to warm up
+    NUM_EPOCH_WARM_UP = NUM_EPOCH // 25
+    NUM_BATCH_WARM_UP = len(train_loader) * NUM_EPOCH_WARM_UP
+    
+    # start training
+    batch = 0
+    for epoch in range(NUM_EPOCH):
+        # adjust LR for each training stage after warm up, you can also
+        # choose to adjust LR manually (with slight modification) once
+        # plaueau observed
+        if epoch == STAGES[0]: 
             schedule_lr(OPTIMIZER)
         if epoch == STAGES[1]:
             schedule_lr(OPTIMIZER)
@@ -176,9 +226,9 @@ if __name__ == '__main__':
         top5 = AverageMeter()
 
         for inputs, labels in tqdm(iter(train_loader)):
-
-            if (epoch + 1 <= NUM_EPOCH_WARM_UP) and (batch + 1 <= NUM_BATCH_WARM_UP): # adjust LR for each training batch during warm up
-                warm_up_lr(batch + 1, NUM_BATCH_WARM_UP, LR, OPTIMIZER)
+            # adjust LR for each training batch during warm up
+            if (epoch+1 <=NUM_EPOCH_WARM_UP) and (batch+1 <=NUM_BATCH_WARM_UP): 
+                warm_up_lr(batch+1, NUM_BATCH_WARM_UP, LR, OPTIMIZER)
 
             # compute output
             inputs = inputs.to(DEVICE)
@@ -188,7 +238,7 @@ if __name__ == '__main__':
             loss = LOSS(outputs, labels)
 
             # measure accuracy and record loss
-            prec1, prec5 = accuracy(outputs.data, labels, topk = (1, 5))
+            prec1, prec5 = accuracy(outputs.data, labels, topk=(1, 5))
             losses.update(loss.data.item(), inputs.size(0))
             top1.update(prec1.data.item(), inputs.size(0))
             top5.update(prec5.data.item(), inputs.size(0))
@@ -205,10 +255,11 @@ if __name__ == '__main__':
                       'Training Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                       'Training Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
                       'Training Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
-                    epoch + 1, NUM_EPOCH, batch + 1, len(train_loader) * NUM_EPOCH, loss = losses, top1 = top1, top5 = top5))
+                    epoch+1, NUM_EPOCH, batch+1, len(train_loader)*NUM_EPOCH,
+                    loss=losses, top1=top1, top5=top5))
                 print("=" * 60)
-
-            batch += 1 # batch index
+ 
+            batch += 1 
 
         # training statistics per epoch (buffer for visualization)
         epoch_loss = losses.avg
@@ -251,3 +302,4 @@ if __name__ == '__main__':
         else:
             torch.save(BACKBONE.state_dict(), os.path.join(MODEL_ROOT, "Backbone_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(BACKBONE_NAME, epoch + 1, batch, get_time())))
             torch.save(HEAD.state_dict(), os.path.join(MODEL_ROOT, "Head_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(HEAD_NAME, epoch + 1, batch, get_time())))
+

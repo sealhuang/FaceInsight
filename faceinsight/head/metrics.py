@@ -1,10 +1,14 @@
+# vi: set ft=python sts=4 ts=4 sw=4 et:
+
+from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import division
+
+import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import Parameter
-import math
 
 
 # Support: ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
@@ -314,3 +318,4 @@ class Am_softmax(nn.Module):
         output *= self.s  # scale up in order to make softmax work, first introduced in normface
 
         return output
+
