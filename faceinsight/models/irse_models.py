@@ -68,7 +68,6 @@ class bottleneck_IR(nn.Module):
     def forward(self, x):
         shortcut = self.shortcut_layer(x)
         res = self.res_layer(x)
-
         return res + shortcut
 
 
@@ -104,8 +103,8 @@ class Bottleneck(namedtuple('Block', ['in_channel', 'depth', 'stride'])):
 
 
 def get_block(in_channel, depth, num_units, stride=2):
-    return [Bottleneck(in_channel, depth, stride)] + [Bottleneck(depth, depth,1)
-                for i in range(num_units - 1)]
+    return [Bottleneck(in_channel, depth, stride)] + \
+                [Bottleneck(depth, depth, 1) for i in range(num_units - 1)]
 
 def get_blocks(num_layers):
     if num_layers==50:
