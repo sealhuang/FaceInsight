@@ -170,27 +170,18 @@ class ResNet(nn.Module):
 
         return x
 
-
 def ResNet_50(input_size, **kwargs):
-    """Constructs a ResNet-50 model.
-    """
+    """Constructs a ResNet-50 model."""
     model = ResNet(input_size, Bottleneck, [3, 4, 6, 3], **kwargs)
-
     return model
-
 
 def ResNet_101(input_size, **kwargs):
-    """Constructs a ResNet-101 model.
-    """
+    """Constructs a ResNet-101 model."""
     model = ResNet(input_size, Bottleneck, [3, 4, 23, 3], **kwargs)
-
     return model
 
-
 def ResNet_152(input_size, **kwargs):
-    """Constructs a ResNet-152 model.
-    """
+    """Constructs a ResNet-152 model."""
     model = ResNet(input_size, Bottleneck, [3, 8, 36, 3], **kwargs)
-
     return model
 
