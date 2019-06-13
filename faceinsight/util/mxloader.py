@@ -18,7 +18,7 @@ def load_bin(bin_file, root_dir, image_size=[112, 112]):
     if not os.path.exists(root_dir):
         os.makedirs(root_dir, mode=0o755)
     bins, issame_list = pickle.load(open(bin_file, 'rb'), encoding='bytes')
-    data = bcolz.fill([len(bins), 3, image_size[0], image_size[1]],
+    data = bcolz.fill([len(bins), image_size[0], image_size[1], 3],
                       dtype=np.float32,
                       rootdir=root_dir,
                       mode='w')
