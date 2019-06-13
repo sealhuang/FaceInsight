@@ -54,5 +54,5 @@ def load_mx_rec(rec_path):
         label_path = os.path.join(save_path, str(label))
         if not os.path.exists(label_path):
             os.makedirs(label_path, mode=0o755)
-        img.save(os.path.join(label_path, '{}.jpg'.format(idx), quality=95)
+        img.save(os.path.join(label_path, '{}.jpg'.format(idx)), quality=95)
 

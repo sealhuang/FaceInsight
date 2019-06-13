@@ -2,7 +2,7 @@
 
 import os
 import argparse
-from faceinsightutil.mxloader import load_bin, load_mx_rec
+from faceinsight.util.mxloader import load_bin, load_mx_rec
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='extracting faces_emore data')
