@@ -151,14 +151,14 @@ class Backbone(nn.Module):
             self.output_layer = nn.Sequential(
                                     nn.BatchNorm2d(512),
                                     nn.Dropout(),
-                                    nn.Flatten(),
+                                    Flatten(),
                                     nn.Linear(512 * 7 * 7, 512),
                                     nn.BatchNorm1d(512))
         else:
             self.output_layer = nn.Sequential(
                                     nn.BatchNorm2d(512),
                                     nn.Dropout(),
-                                    nn.Flatten(),
+                                    Flatten(),
                                     nn.Linear(512 * 14 * 14, 512),
                                     nn.BatchNorm1d(512))
 
