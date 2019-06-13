@@ -37,15 +37,14 @@ def l2_norm(input, axis=1):
     return output
 
 def make_weights_for_balanced_classes(images, nclasses):
-    '''
-        Make a vector of weights for each image in the dataset, based
-        on class frequency. The returned vector of weights can be used
-        to create a WeightedRandomSampler for a DataLoader to have
-        class balancing when sampling for a training batch.
-            images - torchvisionDataset.imgs
-            nclasses - len(torchvisionDataset.classes)
-        https://discuss.pytorch.org/t/balanced-sampling-between-classes-with-torchvision-dataloader/2703/3
-    '''
+    """Make a vector of weights for each image in the dataset, based
+    on class frequency. The returned vector of weights can be used
+    to create a WeightedRandomSampler for a DataLoader to have
+    class balancing when sampling for a training batch.
+        images - torchvisionDataset.imgs
+        nclasses - len(torchvisionDataset.classes)
+    ref: https://discuss.pytorch.org/t/balanced-sampling-between-classes-with-torchvision-dataloader/2703/3
+    """
     count = [0] * nclasses
     # item is (img-data, label-id)
     for item in images:
@@ -62,21 +61,9 @@ def make_weights_for_balanced_classes(images, nclasses):
     return weight
 
 def get_val_pair(path, name):
-    carray = bcolz.carray(rootdir = os.path.join(path, name), mode='r')
+    carray = bcolz.carray(rootdir=os.path.join(path, name), mode='r')
     issame = np.load('{}/{}_list.npy'.format(path, name))
-
     return carray, issame
-
-def get_val_data(data_path):
-    lfw, lfw_issame = get_val_pair(data_path, 'lfw')
-    cfp_ff, cfp_ff_issame = get_val_pair(data_path, 'cfp_ff')
-    cfp_fp, cfp_fp_issame = get_val_pair(data_path, 'cfp_fp')
-    agedb_30, agedb_30_issame = get_val_pair(data_path, 'agedb_30')
-    calfw, calfw_issame = get_val_pair(data_path, 'calfw')
-    cplfw, cplfw_issame = get_val_pair(data_path, 'cplfw')
-    vgg2_fp, vgg2_fp_issame = get_val_pair(data_path, 'vgg2_fp')
-
-    return lfw, cfp_ff, cfp_fp, agedb_30, calfw, cplfw, vgg2_fp, lfw_issame, cfp_ff_issame, cfp_fp_issame, agedb_30_issame, calfw_issame, cplfw_issame, vgg2_fp_issame
 
 def separate_irse_bn_paras(modules):
     if not isinstance(modules, list):
@@ -186,25 +173,27 @@ def perform_val(multi_gpu, device, embedding_size, batch_size, backbone, carray,
             if tta:
                 ccropped = ccrop_batch(batch)
                 fliped = hflip_batch(ccropped)
-                emb_batch = backbone(ccropped.to(device)).cpu() + backbone(fliped.to(device)).cpu()
+                emb_batch = backbone(ccropped.to(device)).cpu() + \
+                            backbone(fliped.to(device)).cpu()
                 embeddings[idx:idx + batch_size] = l2_norm(emb_batch)
             else:
                 ccropped = ccrop_batch(batch)
-                embeddings[idx:idx + batch_size] = l2_norm(backbone(ccropped.to(device))).cpu()
+                embeddings[idx:idx + batch_size] = \
+                            l2_norm(backbone(ccropped.to(device))).cpu()
             idx += batch_size
         if idx < len(carray):
             batch = torch.tensor(carray[idx:])
             if tta:
                 ccropped = ccrop_batch(batch)
                 fliped = hflip_batch(ccropped)
-                emb_batch = backbone(ccropped.to(device)).cpu() + backbone(fliped.to(device)).cpu()
+                emb_batch = backbone(ccropped.to(device)).cpu() + \
+                            backbone(fliped.to(device)).cpu()
                 embeddings[idx:] = l2_norm(emb_batch)
             else:
                 ccropped = ccrop_batch(batch)
                 embeddings[idx:] = l2_norm(backbone(ccropped.to(device))).cpu()
 
-    tpr, fpr, accuracy, best_thresholds = evaluate(embeddings, issame,
-                                                   nrof_folds)
+    tpr, fpr, accuracy, best_thresholds = evaluate(embeddings,issame,nrof_folds)
     buf = gen_plot(fpr, tpr)
     roc_curve = Image.open(buf)
     roc_curve_tensor = transforms.ToTensor()(roc_curve)
@@ -246,6 +235,5 @@ def accuracy(output, target, topk=(1,)):
     for k in topk:
         correct_k = correct[:k].view(-1).float().sum(0)
         res.append(correct_k.mul_(100.0 / batch_size))
-
     return res
 

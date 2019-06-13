@@ -1,7 +1,9 @@
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 
+import os
 import torch
 
+base_dir = '/root/path'
 
 configurations = {
     1: dict(
@@ -9,11 +11,11 @@ configurations = {
         SEED = 1337,
 
         # the parent root where your train/val/test data are stored
-        DATA_ROOT = '/media/pc/6T/jasonjzhao/data/faces_emore',
+        DATA_ROOT = os.path.join(base_dir, 'faces_emore'),
         # the root to buffer your checkpoints
-        MODEL_ROOT = '/media/pc/6T/jasonjzhao/buffer/model',
+        MODEL_ROOT = os.path.join(base_dir, 'buffer', 'model'),
         # the root to log your train/val status
-        LOG_ROOT = '/media/pc/6T/jasonjzhao/buffer/log',
+        LOG_ROOT = os.path.join(base_dir, 'buffer', 'log'),
         # the root to resume training from a saved checkpoint
         BACKBONE_RESUME_ROOT = './', 
         # the root to resume training from a saved checkpoint
@@ -22,7 +24,7 @@ configurations = {
         # support: ['ResNet_50', 'ResNet_101', 'ResNet_152',
         #           'IR_50', 'IR_101', 'IR_152',
         #           'IR_SE_50', 'IR_SE_101', 'IR_SE_152']
-        BACKBONE_NAME = 'IR_SE_50',
+        BACKBONE_NAME = 'IR_50',
         # support: ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
         HEAD_NAME = 'ArcFace',
         # support: ['Focal', 'Softmax']
@@ -52,11 +54,11 @@ configurations = {
         # flag to use multiple GPUs; if you choose to train with single GPU,
         # you should first run "export CUDA_VISILE_DEVICES=device_id" to specify
         # the GPU card you want to use
-        MULTI_GPU = True,
+        MULTI_GPU = False,
         # specify your GPU ids
-        GPU_ID = [0, 1, 2, 3],
+        GPU_ID = [0],
         PIN_MEMORY = True,
-        NUM_WORKERS = 0,
+        NUM_WORKERS = 16,
 ),
 }
 
