@@ -202,7 +202,7 @@ def test(model, criterion, device, test_loader, epoch, writer):
         writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch)
     params = model.state_dict()
     #print(params.keys())
-    x = vutils.make_grid(params['base_model.0.weight'].clone().cpu().data,
+    x = vutils.make_grid(params['base_model.input_layer.0.weight'].clone().cpu().data,
                          normalize=True, scale_each=True)
     writer.add_image('Image', x, epoch)
 
