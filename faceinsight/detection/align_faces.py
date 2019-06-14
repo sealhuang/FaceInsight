@@ -7,10 +7,10 @@ import argparse
 import numpy as np
 from PIL import Image
 
-from faceevolve.detection import detect_faces
-from faceevolve.detection.align_trans import get_reference_facial_points
-from faceevolve.detection.align_trans import warp_and_crop_face
-from faceevolve.io.dataset import get_dataset
+from faceinsight.detection import detect_faces
+from faceinsight.detection.align_trans import get_reference_facial_points
+from faceinsight.detection.align_trans import warp_and_crop_face
+from faceinsight.io.dataset import get_dataset
 
 def main(args):
     # output dir config
@@ -79,7 +79,7 @@ def parse_arguments(argv):
     parser.add_argument('--expand_scalar', type=float, default=1.4,
                         help='expanding factor of bounding box')
     parser.add_argument('--mode', default='cpu', type=str,
-                        help='gpu or cpu mode')
+                        help='gpu or cpu mode, cpu is the default option')
     args = parser.parse_args()
  
     return parser.parse_args(argv)

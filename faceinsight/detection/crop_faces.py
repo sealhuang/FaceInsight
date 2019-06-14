@@ -10,8 +10,8 @@ import numpy as np
 from PIL import Image
 from scipy import misc
 
-from faceevolve.detection import detect_faces
-from faceevolve.io.dataset import get_dataset
+from faceinsight.detection import detect_faces
+from faceinsight.io.dataset import get_dataset
 
 
 def get_square_crop_box(crop_box, box_scaler=1.0):
@@ -154,7 +154,7 @@ def parse_arguments(argv):
                         default=1.4,
                         help='expanding scaler for the bounding box (1.4 by default).')
     parser.add_argument('--mode', default='cpu', type=str,
-                        help='cpu or gpu mode')
+                        help='cpu or gpu mode, cpu is the default option')
     parser.add_argument('--detect_multiple_faces',
                         default=False,
                         help='Detect and align multiple faces per image.',
