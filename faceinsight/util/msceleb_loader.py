@@ -5,6 +5,7 @@
 import os
 import base64
 import struct
+from tqdm import tqdm
 
 def tsv_extractor(root_dir, tsv_file):
     """Extract images from tsv file."""
@@ -83,7 +84,7 @@ def gen_clean_dataset(root_dir, clean_list_file):
     label_info = open(clean_list_file, 'r').readlines()
     label_info = [line.strip().split() for line in label_info]
     img_idx = 1
-    for line in label_info:
+    for line in tqdm(label_info):
         class_dir = os.path.join(clean_dir, line[1])
         if not os.path.exists(class_dir):
             os.makedirs(class_dir, mode=0o755)
