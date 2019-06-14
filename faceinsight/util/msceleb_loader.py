@@ -59,26 +59,47 @@ def merge_clean_label(root_dir):
             if line[0] in merged_list:
                 if not line[1] in merged_list[line[0]]:
                     merged_list[line[0]].append(line[1])
-                    tital_num += 1
+                    total_num += 1
                 else:
                     continue
             else:
                 merged_list[line[0]] = [line[1]]
-                tital_num += 1
+                total_num += 1
 
-    print('%s unique images found'%(tital_num))
+    print('%s unique images found'%(total_num))
     merged_list_file = os.path.join(label_dir, 'merged_clean_list.txt')
     with open(merged_list_file, 'w') as outf:
         class_idx = 0
         for c in merged_list:
             for line in merged_list[c]:
-                outf.write('%s %s'%(line, class_idx))
+                outf.write('%s %s\n'%(line, class_idx))
             class_idx += 1
+
+def gen_clean_dataset(root_dir, clean_list_file):
+    """Copy and organize images based on clean list."""
+    img_dir = os.path.join(root_dir, 'extracted', 'imgs')
+    clean_dir = os.path.join(root_dir, 'extracted', 'clean')
+    
+    label_info = open(clean_list_file, 'r').readlines()
+    label_info = [line.strip().split() for line in label_info]
+    img_idx = 1
+    for line in label_info:
+        class_dir = os.path.join(clean_dir, line[1])
+        if not os.path.exists(class_dir):
+            os.makedirs(class_dir, mode=0o755)
+        src_img = os.path.join(img_dir, line[0])
+        targ_img = os.path.join(class_dir, str(img_idx)+'.jpg')
+        os.system(' '.join(['cp', src_img, targ_img]))
+        img_idx += 1
 
 
 if __name__ == '__main__':
     root_dir = '/home/huanglj/database/MS-Celeb-1M'
     tsv_file = 'MsCelebV1_Faces_Aligned.tsv'
     #tsv_extractor(root_dir, tsv_file)
-    merge_clean_label(root_dir)
+    #merge_clean_label(root_dir)
+    # The clean list comes from XiangWu's repo
+    # (https://github.com/AlfredXiangWu/face_verification_experiment)
+    clean_list_file = os.path.join(root_dir, 'MS-Celeb-1M_clean_list.txt')
+    gen_clean_dataset(root_dir, clean_list_file)
 
