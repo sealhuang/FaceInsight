@@ -65,37 +65,6 @@ def get_val_pair(path, name):
     issame = np.load('{}/{}_list.npy'.format(path, name))
     return carray, issame
 
-def separate_irse_bn_paras(modules):
-    if not isinstance(modules, list):
-        modules = [*modules.modules()]
-    paras_only_bn = []
-    paras_wo_bn = []
-    for layer in modules:
-        if 'model' in str(layer.__class__):
-            continue
-        if 'container' in str(layer.__class__):
-            continue
-        else:
-            if 'batchnorm' in str(layer.__class__):
-                paras_only_bn.extend([*layer.parameters()])
-            else:
-                paras_wo_bn.extend([*layer.parameters()])
-
-    return paras_only_bn, paras_wo_bn
-
-def separate_resnet_bn_paras(modules):
-    all_parameters = modules.parameters()
-    paras_only_bn = []
-
-    for pname, p in modules.named_parameters():
-        if pname.find('bn') >= 0:
-            paras_only_bn.append(p)
-
-    paras_only_bn_id = list(map(id, paras_only_bn))
-    paras_wo_bn = list(filter(lambda p: id(p) not in paras_only_bn_id, all_parameters))
-    
-    return paras_only_bn, paras_wo_bn
-
 def warm_up_lr(batch, num_batch_warm_up, init_lr, optimizer):
     for params in optimizer.param_groups:
         params['lr'] = batch * init_lr / num_batch_warm_up

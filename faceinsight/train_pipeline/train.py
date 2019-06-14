@@ -16,11 +16,14 @@ from torch.utils.tensorboard import SummaryWriter
 
 from config import configurations
 from faceinsight.models.resnet_models import ResNet_50, ResNet_101, ResNet_152
+from faceinsight.models.resnet_models import separate_resnet_bn_paras
 from faceinsight.models.irse_models import IR_50, IR_101, IR_152
 from faceinsight.models.irse_models import IR_SE_50, IR_SE_101, IR_SE_152
+from faceinsight.models.irse_models import separate_irse_bn_paras
 from faceinsight.head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
 from faceinsight.loss.focal import FocalLoss
-from util.utils import make_weights_for_balanced_classes, get_val_pair, separate_irse_bn_paras, separate_resnet_bn_paras, warm_up_lr, schedule_lr, perform_val, get_time, buffer_val, AverageMeter, accuracy
+from faceinsight.util.utils import make_weights_for_balanced_classes, warm_up_lr, schedule_lr, get_time
+from faceinsight.util.utils import get_val_pair, perform_val, buffer_val, AverageMeter, accuracy
 
 
 if __name__ == '__main__':

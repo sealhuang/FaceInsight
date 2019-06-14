@@ -403,16 +403,19 @@ def train_ensemble_model_sugar(factor, random_seed):
                                 os.path.dirname(irse_models.__file__),
                                 'backbone_ir50_ms1m_epoch63.pth')
         model_backbone.load_state_dict(torch.load(backbone_weights))
+        model_backbone.zero_bias()
         model = clsNet1(model_backbone, 2).to(device)
 
         # summary writer config
         writer = SummaryWriter()
         # XXX: exclude batchnorm parameters
+        paras_only_bn, paras_wo_bn = irse_models.separate_irse_bn_paras(
+                                                            model.base_model)
         optimizer = optim.SGD([
-                        {'params': model.base_model.parameters(),
-                         'weight_decay': 1e-8},
+                        {'params': paras_wo_bn, 'weight_decay': 5e-4},
+                        {'params': paras_only_bn},
                         {'params': model.classifier.parameters(),
-                         'weight_decay': 1e-8}
+                         'weight_decay': 5e-4}
                         ], lr=0.001, momentum=0.9)
         scheduler = optim.lr_scheduler.StepLR(optimizer,step_size=15,gamma=0.1)
         criterion = nn.CrossEntropyLoss(reduction='mean')

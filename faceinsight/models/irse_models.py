@@ -197,6 +197,19 @@ class Backbone(nn.Module):
                 if m.bias is not None:
                     m.bias.data.zero_()
 
+    def zero_bias(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                if m.bias is not None:
+                    m.bias.data.zero_()
+            elif isinstance(m, nn.BatchNorm2d):
+                m.bias.data.zero_()
+            elif isinstance(m, nn.BatchNorm1d):
+                m.bias.data.zero_()
+            elif isinstance(m, nn.Linear):
+                if m.bias is not None:
+                    m.bias.data.zero_()
+
 def IR_50(input_size):
     """Constructs a ir-50 model."""
     model = Backbone(input_size, 50, 'ir')
@@ -226,4 +239,22 @@ def IR_SE_152(input_size):
     """Constructs a ir_se-152 model."""
     model = Backbone(input_size, 152, 'ir_se')
     return model
+
+def separate_irse_bn_paras(modules):
+    if not isinstance(modules, list):
+        modules = [*modules.modules()]
+    paras_only_bn = []
+    paras_wo_bn = []
+    for layer in modules:
+        if 'model' in str(layer.__class__):
+            continue
+        if 'container' in str(layer.__class__):
+            continue
+        else:
+            if 'batchnorm' in str(layer.__class__):
+                paras_only_bn.extend([*layer.parameters()])
+            else:
+                paras_wo_bn.extend([*layer.parameters()])
+
+    return paras_only_bn, paras_wo_bn
 
