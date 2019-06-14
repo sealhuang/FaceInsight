@@ -23,22 +23,21 @@ while True:
         # 5: bbox
         # 6: img_data
         filename = data_info[0] +'/'+ data_info[1] +'-'+ data_info[4] + '.jpg'
-        bbox = struct.unpack('ffff', data_info[5].decode("base64"))
+        bbox = struct.unpack('ffff', base64.b64decode(data_info[5]))
         bbox_file.write(filename + ' ' + 
                     (' '.join(str(bbox_value) for bbox_value in bbox)) + '\n')
 
-        img_data = data_info[6].decode("base64")
+        img_data = base64.b64decode(data_info[6])
         output_file_path = os.path.join(img_dir, filename)
         if os.path.exists(output_file_path):
-            print output_file_path + " exists"
+            print(output_file_path + ' exists')
 
         output_path = os.path.dirname(output_file_path)
         if not os.path.exists(output_path):
             os.mkdir(output_path)
 
-        img_file = open(output_file_path, 'w')
-        img_file.write(img_data)
-        img_file.close()
+        with open(output_file_path, 'wb') as f:
+            f.write(img_data)
     else:
         break
 
