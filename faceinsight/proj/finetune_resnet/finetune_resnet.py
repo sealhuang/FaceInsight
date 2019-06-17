@@ -17,7 +17,7 @@ from torchvision import transforms
 import torchvision.utils as vutils
 from torch.utils.data.sampler import SubsetRandomSampler
 from sklearn.metrics import confusion_matrix
-from torch.utils.tensorboard import SummaryWriter
+from tensorboardX import SummaryWriter
 
 from bnuclfdataset import PF16FaceDataset
 import resnet as ResNet

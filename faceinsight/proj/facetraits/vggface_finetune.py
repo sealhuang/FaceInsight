@@ -16,7 +16,7 @@ from torchvision import transforms
 import torchvision.utils as vutils
 from torch.utils.data.sampler import SubsetRandomSampler
 from sklearn.metrics import confusion_matrix
-from torch.utils.tensorboard import SummaryWriter
+from tensorboardX import SummaryWriter
 
 from faceinsight.models import vggface
 from bnuclfdataset import PF16FaceDataset
