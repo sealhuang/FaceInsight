@@ -19,7 +19,7 @@ def main(args):
         os.makedirs(output_dir)
     
     # get uncropped face images
-    ds = get_dataset(args.source_dir, has_class_directories=False)
+    ds = get_dataset(args.source_dir, has_class_directories=args.has_class_dirs)
     
     print('Align faces ...')
     
@@ -75,11 +75,14 @@ def parse_arguments(argv):
     parser.add_argument('dest_dir', type=str,
                         help='specify your destination dir')
     parser.add_argument('--image_size', type=int, default=224,
-                        help='aligned faces size (crop and align with padding)')
+                        help='aligned faces size, default is 224')
     parser.add_argument('--expand_scalar', type=float, default=1.4,
-                        help='expanding factor of bounding box')
+                        help='expanding factor of bounding box, default is 1.4')
     parser.add_argument('--mode', default='cpu', type=str,
                         help='gpu or cpu mode, cpu is the default option')
+    parser.add_argument('--has_class_dirs', default=False,
+                        help='Has subdirectory for each class',
+                        action='store_true')
     args = parser.parse_args()
  
     return parser.parse_args(argv)
