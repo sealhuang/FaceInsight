@@ -15,6 +15,7 @@ import torch.optim as optim
 import torchvision
 from torchvision import datasets, models, transforms
 
+from faceinsight.util.utils import make_weights_for_balanced_classes
 
 def train_model(model, dataloaders, criterion, optimizer, num_epochs=25):
     """Helper function for model training and validation."""
@@ -140,7 +141,7 @@ def initialize_model(model_name, num_classes, feature_extract,
 
 def main():
     # data path config
-    data_dir = '/home/huanglj/database/affectnet'
+    data_dir = '/home/huanglj/database/affectnet/aligned'
 
     # models to choose from [resnet, alexnet, vgg,
     #   shufflenet_v2_x1_0, shufflenet_v2_x0_5]
@@ -191,10 +192,22 @@ def main():
     image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x),
                                               data_transforms[x])
                         for x in ['train', 'val']}
+    # create a weighted random sampler to process imbalanced data
+    train_weights = make_weights_for_balanced_classes(
+                        image_datasets['train'].imgs,
+                        len(image_datasets['train'].classes))
+    train_weights = torch.DoubleTensor(train_weights)
+    sampler = {}
+    sampler['train'] = torch.utils.data.sampler.WeightedRandomSampler(
+                            train_weights, len(train_weights))
+    sampler['val'] = None
+    shuffle_flag = {'train': False, 'val': True}
+
     # Create training and validation dataloaders
     dataloaders_dict = {x: torch.utils.data.DataLoader(image_datasets[x],
                                                        batch_size=batch_size,
-                                                       shuffle=True,
+                                                       sampler=sampler[x],
+                                                       shuffle=shuffle_flag[x],
                                                        num_workers=4)
                             for x in ['train', 'val']}
 
