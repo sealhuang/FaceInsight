@@ -22,16 +22,23 @@ from torch.utils.tensorboard import SummaryWriter
 from bnuclfdataset import PF16FaceDataset
 import resnet as ResNet
 
+class ExtraTransform(object):
+    def __init__(self):
+        pass
 
-def transform_extra(img):
-    img = np.array(img, dtype=np.uint8)
-    assert len(img.shape)==3
-    img = img[:, :, ::-1]
-    img = img.astype(np.float32)
-    img -= np.array([91.4953, 103.8827, 131.0912])
-    img = img.transpose(2, 0, 1)
-    img = torch.from_numpy(img).float()
-    return img
+    def __call__(self, img):
+        img = np.array(img, dtype=np.uint8)
+        assert len(img.shape)==3
+        img = img[:, :, ::-1]
+        img = img.astype(np.float32)
+        img -= np.array([91.4953, 103.8827, 131.0912])
+        img = img.transpose(2, 0, 1)
+        img = torch.from_numpy(img).float()
+        return img
+
+    def __repr__(self):
+        return self.__class__.__name__
+
 
 def load_weight_dict(model, fname):
     """
@@ -150,10 +157,10 @@ def load_data(factor, data_dir, sample_size_per_class,
                                           transforms.ColorJitter(brightness=.05,
                                                                  saturation=.05),
                                           transforms.RandomHorizontalFlip(),
-                                          transform_extra()])
+                                          ExtraTransform()])
     test_transform = transforms.Compose([transforms.Resize(250),
                                          transforms.CenterCrop(224),
-                                         transform_extra()])
+                                         ExtraTransform()])
 
     # load the dataset
     #train_dataset = MBTIFaceDataset(csv_file, face_dir, 'JP',
