@@ -17,7 +17,7 @@ from torchvision import datasets, models, transforms
 
 from faceinsight.util.utils import make_weights_for_balanced_classes
 
-def train_model(model, dataloaders, criterion, optimizer, num_epochs=25):
+def train_model(model, dataloaders, criterion, optimizer, device, num_epochs):
     """Helper function for model training and validation."""
     since = time.time()
 
@@ -243,7 +243,7 @@ def main():
 
     # Train and evaluate
     model_ft, hist = train_model(model_ft, dataloaders_dict, criterion,
-                                 optimizer_ft, num_epochs=num_epochs)
+                                 optimizer_ft, device, num_epochs)
 
 
 if __name__ == '__main__':
