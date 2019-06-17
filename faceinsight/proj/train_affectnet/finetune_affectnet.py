@@ -16,8 +16,29 @@ import torchvision
 from torchvision import datasets, models, transforms
 
 from faceinsight.util.utils import make_weights_for_balanced_classes
+from faceinsight.util.utils import schedule_lr
 
-def train_model(model, dataloaders, criterion, optimizer, device, num_epochs):
+
+def separate_bn_paras(modules):
+    if not isinstance(modules, list):
+        modules = [*modules.modules()]
+    paras_only_bn = []
+    paras_wo_bn = []
+    for layer in modules:
+        if 'model' in str(layer.__class__):
+            continue
+        if 'container' in str(layer.__class__):
+            continue
+        else:
+            if 'batchnorm' in str(layer.__class__):
+                paras_only_bn.extend([*layer.parameters()])
+            else:
+                paras_wo_bn.extend([*layer.parameters()])
+
+    return paras_only_bn, paras_wo_bn
+
+def train_model(model, dataloaders, criterion, optimizer, device, num_epochs,
+                train_stage):
     """Helper function for model training and validation."""
     since = time.time()
 
@@ -29,6 +50,9 @@ def train_model(model, dataloaders, criterion, optimizer, device, num_epochs):
     for epoch in range(num_epochs):
         print('Epoch {}/{}'.format(epoch, num_epochs-1))
         print('-' * 10)
+
+        if (epoch+1) in train_stage:
+            schedule_lr(optimizer)
 
         # Each epoch has a training and validation phase
         for phase in ['train', 'val']:
@@ -148,13 +172,15 @@ def main():
     model_name = 'shufflenet_v2_x1_0'
 
     # number of classes in the dataset
-    num_classes = 8
+    num_classes = 7
 
     # batch size for training (change depending on how much memory you have)
     batch_size = 64
 
     # number of epochs to train for
-    num_epochs = 15
+    num_epochs = 40
+    train_stage = [15, 30]
+    init_lr = 0.01
 
     # flag for feature extracting. When False, we finetune the whole model,
     # when True we only update the reshaped layer params
@@ -172,14 +198,14 @@ def main():
     # Just normalization for validation
     data_transforms = {
         'train': transforms.Compose([
-            transforms.Resize(256),
-            transforms.RandomResizedCrop(input_size),
+            transforms.Resize(250),
+            transforms.RandomCrop(input_size),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
         'val': transforms.Compose([
-            transforms.Resize(256),
+            transforms.Resize(250),
             transforms.CenterCrop(input_size),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
@@ -208,7 +234,7 @@ def main():
                                                        batch_size=batch_size,
                                                        sampler=sampler[x],
                                                        shuffle=shuffle_flag[x],
-                                                       num_workers=4)
+                                                       num_workers=8)
                             for x in ['train', 'val']}
 
     # Detect if we have a GPU available
@@ -236,14 +262,15 @@ def main():
                 print("\t",name)
 
     # Observe that all parameters are being optimized
-    optimizer_ft = optim.SGD(params_to_update, lr=0.001, momentum=0.9)
+    optimizer_ft = optim.SGD(params_to_update, lr=init_lr, momentum=0.9,
+                             weight_decay=1e-6)
 
     # Setup the loss fxn
     criterion = nn.CrossEntropyLoss()
 
     # Train and evaluate
     model_ft, hist = train_model(model_ft, dataloaders_dict, criterion,
-                                 optimizer_ft, device, num_epochs)
+                                 optimizer_ft, device, num_epochs, train_stage)
 
 
 if __name__ == '__main__':
