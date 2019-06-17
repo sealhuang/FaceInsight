@@ -300,7 +300,7 @@ def train_ensemble_model_sugar(factor, random_seed):
                 params_only_bn.append(param)
                 print('params within bn\t', name)
             elif ('fc' in name) or ('bias' in name):
-                params_wo_bn.requires_grad=True
+                param.requires_grad=True
                 params_wo_bn.append(param)
                 print('params without bn\t', name)
             #if param.requires_grad==True:
