@@ -292,12 +292,17 @@ def train_ensemble_model_sugar(factor, random_seed):
         model = load_model(model_weight_file)
         model = model.to(device)
         #print(model)
-        params_to_update = []
+        params_only_bn = []
+        params_wo_bn = []
         for name, param in model.named_parameters():
-            if 'fc' in name or 'bias' in name:
+            if 'bn' in name:
                 param.requires_grad=True
-                params_to_update.append(param)
-                print('\t', name)
+                params_only_bn.append(param)
+                print('params within bn\t', name)
+            elif ('fc' in name) or ('bias' in name):
+                params_wo_bn.requires_grad=True
+                params_wo_bn.append(param)
+                print('params without bn\t', name)
             #if param.requires_grad==True:
             #    params_to_update.append(param)
             #    print('\t', name)
@@ -305,9 +310,10 @@ def train_ensemble_model_sugar(factor, random_seed):
         # summary writer config
         writer = SummaryWriter()
         optimizer = optim.SGD([
-                        {'params': params_to_update,
+                        {'params': params_wo_bn,
                         #{'params': model.parameters(),
                          'weight_decay': 5e-7},
+                        {'params': params_only_bn},
                         ], lr=0.001, momentum=0.9)
         scheduler = optim.lr_scheduler.StepLR(optimizer,step_size=15,gamma=0.1)
         criterion = nn.CrossEntropyLoss(reduction='mean')
