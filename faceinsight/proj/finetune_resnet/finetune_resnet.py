@@ -67,12 +67,17 @@ def load_model(model_weight_file):
     """Load resnet50 model as backbone."""
     model = ResNet.resnet50(num_classes=8631, include_top=True)
     load_weight_dict(model, model_weight_file)
-    for param in model.parameters():
-        param.requires_grad = False
+    #for param in model.parameters():
+    #    param.requires_grad = False
     fc_in_dims = model.fc.in_features
-    model.fc = nn.Linear(fc_in_dims, 2)
+    model.fc = nn.Linear(fc_in_dims, 2, bias=False)
+    #model.fc.reset_parameters()
 
     return model
+
+def reset_model_weight(m):
+    if isinstance(m, nn.BatchNorm2d):
+        m.reset_parameters()
 
 def get_img_stats(csv_file, face_dir, batch_size, num_workers, pin_memory):
     """Get mean and std. of the images."""
@@ -141,8 +146,9 @@ def load_data(factor, data_dir, sample_size_per_class,
     #transforms.RandomResizedCrop(224, scale=(0.7, 0.9), ratio=(1.0, 1.0)),
     train_transform = transforms.Compose([transforms.Resize(250),
                                           transforms.RandomCrop(224),
+                                          #transforms.RandomGrayscale(p=0.2),
                                           transforms.ColorJitter(brightness=.05,
-                                                                 saturation=.05),
+                                                                saturation=.05),
                                           transforms.RandomHorizontalFlip(),
                                           ExtraTransform()])
     test_transform = transforms.Compose([transforms.Resize(250),
@@ -292,31 +298,37 @@ def train_ensemble_model_sugar(factor, random_seed):
         model = load_model(model_weight_file)
         model = model.to(device)
         #print(model)
+
+        # reset model parameters
+        model.apply(reset_model_weight)
+
         params_only_bn = []
         params_wo_bn = []
+        params_fc = []
+        params_bn1_bias = []
         for name, param in model.named_parameters():
-            if 'bn' in name:
-                param.requires_grad=True
+            if 'bn1.bias' in name:
+                params_bn1_bias.append(param)
+                print('params bn1.bias\t', name)
+            elif ('bn' in name) or ('downsample.1' in name) :
                 params_only_bn.append(param)
                 print('params within bn\t', name)
-            elif ('fc' in name) or ('bias' in name):
-                param.requires_grad=True
+            elif not 'fc' in name:
                 params_wo_bn.append(param)
                 print('params without bn\t', name)
-            #if param.requires_grad==True:
-            #    params_to_update.append(param)
-            #    print('\t', name)
+            else:
+                params_fc.append(param)
+                print('params fc\t', name)
 
         # summary writer config
         writer = SummaryWriter()
-        writer.add_graph(model, torch.zeros(1, 3, 224, 224).to(device), True)
-        optimizer = optim.SGD([
-                        {'params': params_wo_bn,
-                        #{'params': model.parameters(),
-                         'weight_decay': 5e-7},
-                        {'params': params_only_bn},
-                        ], lr=0.001, momentum=0.9)
-        scheduler = optim.lr_scheduler.StepLR(optimizer,step_size=15,gamma=0.1)
+        #writer.add_graph(model, torch.zeros(1, 3, 224, 224).to(device), False)
+        optimizer = optim.SGD([{'params': params_wo_bn, 'weight_decay': 1e-6},
+                               {'params': params_bn1_bias,'weight_decay': 1e-8},
+                               {'params': params_only_bn, 'weight_decay': 1e-9},
+                               {'params': params_fc, 'weight_decay': 5e-6}],
+                              lr=1e-4, momentum=0.9)
+        scheduler = optim.lr_scheduler.StepLR(optimizer,step_size=20, gamma=0.2)
         criterion = nn.CrossEntropyLoss(reduction='mean')
 
         max_patience = 15
