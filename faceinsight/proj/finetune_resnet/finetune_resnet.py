@@ -309,6 +309,7 @@ def train_ensemble_model_sugar(factor, random_seed):
 
         # summary writer config
         writer = SummaryWriter()
+        writer.add_graph(model, torch.zeros(1, 3, 224, 224).to(device), True)
         optimizer = optim.SGD([
                         {'params': params_wo_bn,
                         #{'params': model.parameters(),
