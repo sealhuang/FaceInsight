@@ -32,6 +32,7 @@ class ExtraTransform(object):
         img = img[:, :, ::-1]
         img = img.astype(np.float32)
         img -= np.array([91.4953, 103.8827, 131.0912])
+        #img -= np.array([129.03, 125.7, 132.09])
         img = img.transpose(2, 0, 1)
         img = torch.from_numpy(img).float()
         return img
@@ -39,6 +40,25 @@ class ExtraTransform(object):
     def __repr__(self):
         return self.__class__.__name__
 
+
+class clsNet1(nn.Module):
+    
+    def __init__(self, base_model, class_num):
+        super(clsNet1, self).__init__()
+        self.base_model = base_model
+        self.fc1 = nn.Linear(2048, 1024, bias=False)
+        self.drop1 = nn.Dropout(0.5)
+        self.fc2 = nn.Linear(1024, 256, bias=False)
+        self.fc3 = nn.Linear(256, class_num, bias=True)
+
+    def forward(self, x):
+        x = self.base_model(x)
+        x = x.view(x.size(0), -1)
+        x = F.relu(self.fc1(x))
+        x = self.drop1(x)
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
 
 def load_weight_dict(model, fname):
     """
@@ -65,19 +85,15 @@ def load_weight_dict(model, fname):
 
 def load_model(model_weight_file):
     """Load resnet50 model as backbone."""
-    model = ResNet.resnet50(num_classes=8631, include_top=True)
+    model = ResNet.resnet50(num_classes=8631, include_top=False)
+    #model.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
+    #                        bias=False)
     load_weight_dict(model, model_weight_file)
-    #for param in model.parameters():
-    #    param.requires_grad = False
-    fc_in_dims = model.fc.in_features
-    model.fc = nn.Linear(fc_in_dims, 2, bias=False)
-    #model.fc.reset_parameters()
+    #model.conv1.bias.data.fill_(1)
+    #fc_in_dims = model.fc.in_features
+    #model.fc = nn.Linear(fc_in_dims, 64, bias=False)
 
     return model
-
-def reset_model_weight(m):
-    if isinstance(m, nn.BatchNorm2d):
-        m.reset_parameters()
 
 def get_img_stats(csv_file, face_dir, batch_size, num_workers, pin_memory):
     """Get mean and std. of the images."""
@@ -209,7 +225,6 @@ def train(model, criterion, device, train_loader, optimizer, epoch, writer):
         optimizer.zero_grad()
         output = model(data)
         loss = criterion(output, target)
-        #loss = F.nll_loss(output, target)
         loss.backward()
         optimizer.step()
         writer.add_scalar('data/training-loss', loss,
@@ -231,22 +246,21 @@ def test(model, criterion, device, test_loader, epoch, writer):
             data, target = data.to(device), target.to(device)
             output = model(data)
             # sum up batch loss
-            #test_loss += F.nll_loss(output, target, reduction='sum').item()
             part_loss = criterion(output, target).item()
             test_loss += part_loss * data.size(0)
             # get the index of the max log-probability
             pred = output.argmax(dim=1, keepdim=False)
-            #correct += pred.eq(target.view_as(pred)).sum().item()
             correct += pred.eq(target).sum().item()
             all_pred.append(pred.cpu().data.numpy())
             all_true.append(target.cpu().data.numpy())
     
     # plot model parameter hist
     for name, param in model.named_parameters():
-        writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch)
+        if param.requires_grad:
+            writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch)
     params = model.state_dict()
     #print(params.keys())
-    x = vutils.make_grid(params['conv1.weight'].clone().cpu().data,
+    x = vutils.make_grid(params['base_model.conv1.weight'].clone().cpu().data,
                          normalize=True, scale_each=True)
     writer.add_image('Image', x, epoch)
 
@@ -291,51 +305,38 @@ def train_ensemble_model_sugar(factor, random_seed):
                                              train_sampler,
                                              val_sampler,
                                              batch_size=50,
-                                             num_workers=25,
+                                             num_workers=15,
                                              pin_memory=True)
+
         # model training and eval
         model_weight_file = './resnet50_ft_weight.pkl'
-        model = load_model(model_weight_file)
-        model = model.to(device)
+        base_model = load_model(model_weight_file)
+        model = clsNet1(base_model, 2).to(device)
         #print(model)
 
-        # reset model parameters
-        model.apply(reset_model_weight)
-
-        params_only_bn = []
-        params_wo_bn = []
-        params_fc = []
-        params_bn1_bias = []
+        params_update = []
+        print('updated parameters:')
         for name, param in model.named_parameters():
-            if 'bn1.bias' in name:
-                params_bn1_bias.append(param)
-                print('params bn1.bias\t', name)
-            elif ('bn' in name) or ('downsample.1' in name) :
-                params_only_bn.append(param)
-                print('params within bn\t', name)
-            elif not 'fc' in name:
-                params_wo_bn.append(param)
-                print('params without bn\t', name)
+            if name.startswith('fc'):
+                params_update.append(param)
+                print('\t%s'%(name))
             else:
-                params_fc.append(param)
-                print('params fc\t', name)
+                param.requires_grad = False
 
         # summary writer config
         writer = SummaryWriter()
         #writer.add_graph(model, torch.zeros(1, 3, 224, 224).to(device), False)
-        optimizer = optim.SGD([{'params': params_wo_bn, 'weight_decay': 1e-6},
-                               {'params': params_bn1_bias,'weight_decay': 1e-8},
-                               {'params': params_only_bn, 'weight_decay': 1e-9},
-                               {'params': params_fc, 'weight_decay': 5e-6}],
-                              lr=1e-4, momentum=0.9)
-        scheduler = optim.lr_scheduler.StepLR(optimizer,step_size=20, gamma=0.2)
+        optimizer = optim.SGD([{'params': params_update, 'weight_decay': 1e-8}],
+                               lr=2e-4, momentum=0.9)
+        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20,
+                                              gamma=0.5)
         criterion = nn.CrossEntropyLoss(reduction='mean')
 
         max_patience = 15
         patience_count = 0
         max_acc = 0
         test_acc = []
-        max_epoch = 45
+        max_epoch = 100
         for epoch in range(1, max_epoch+1):
             scheduler.step()
             train(model, criterion, device, train_loader, optimizer, epoch,
@@ -383,11 +384,9 @@ def train_ensemble_model():
     #    lr=0.001, gamma=0.1
     # F. base_model: weight_decay=1e-8, classifier: weight decay=1e-8,
     #    lr=0.001, gamma=0.1
-    # ?E. base_model: weight_decay 1e-8, classifier: weight decay 5e-8, lr 0.001
-    # 
     #factor_list = ['E', 'I', 'M', 'Q2', 'X1', 'Y1', 'Y2', 'Y3']
     factor_list = ['A']
-    seed = 10
+    seed = 100
     for f in factor_list:
         print('Factor %s'%(f))
         train_ensemble_model_sugar(f, seed)
@@ -399,7 +398,5 @@ def train_ensemble_model():
     
 
 if __name__=='__main__':
-    #model_test_cv()
-    #train_model()
     train_ensemble_model()
 
