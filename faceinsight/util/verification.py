@@ -159,12 +159,14 @@ def calculate_val_far(threshold, dist, actual_issame):
     return val, far
 
 
-def evaluate(embeddings, actual_issame, nrof_folds = 10, pca = 0):
+def evaluate(embeddings, actual_issame, nrof_folds=10, pca=0):
     # Calculate evaluation metrics
     thresholds = np.arange(0, 4, 0.01)
     embeddings1 = embeddings[0::2]
     embeddings2 = embeddings[1::2]
-    tpr, fpr, accuracy, best_thresholds = calculate_roc(thresholds, embeddings1, embeddings2, np.asarray(actual_issame), nrof_folds = nrof_folds, pca = pca)
+    tpr, fpr, accuracy, best_thresholds = calculate_roc(thresholds, embeddings1,
+                                        embeddings2, np.asarray(actual_issame),
+                                        nrof_folds=nrof_folds, pca=pca)
 #     thresholds = np.arange(0, 4, 0.001)
 #     val, val_std, far = calculate_val(thresholds, embeddings1, embeddings2,
 #                                       np.asarray(actual_issame), 1e-3, nrof_folds=nrof_folds)

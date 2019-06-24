@@ -21,20 +21,8 @@ import torch.nn.functional as F
 from .verification import evaluate
 
 
-# Support: ['get_time', 'l2_norm', 'make_weights_for_balanced_classes',
-#           'get_val_pair', 'get_val_data', 'separate_irse_bn_paras',
-#           'separate_resnet_bn_paras', 'warm_up_lr', 'schedule_lr',
-#           'de_preprocess', 'hflip_batch', 'ccrop_batch', 'gen_plot',
-#           'perform_val', 'buffer_val', 'AverageMeter', 'accuracy']
-
 def get_time():
     return (str(datetime.now())[:-10]).replace(' ', '-').replace(':', '-')
-
-def l2_norm(input, axis=1):
-    norm = torch.norm(input, 2, axis, True)
-    output = torch.div(input, norm)
-
-    return output
 
 def make_weights_for_balanced_classes(images, nclasses):
     """Make a vector of weights for each image in the dataset, based
@@ -78,13 +66,13 @@ def schedule_lr(optimizer):
 def de_preprocess(tensor):
     return tensor * 0.5 + 0.5
 
-hflip = transforms.Compose([
-            de_preprocess,
-            transforms.ToPILImage(),
-            transforms.functional.hflip,
-            transforms.ToTensor(),
-            transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
-        ])
+hflip = transforms.Compose([de_preprocess,
+                            transforms.ToPILImage(),
+                            transforms.functional.hflip,
+                            transforms.ToTensor(),
+                            transforms.Normalize([0.5, 0.5, 0.5],
+                                                 [0.5, 0.5, 0.5])
+                        ])
 
 def hflip_batch(imgs_tensor):
     hfliped_imgs = torch.empty_like(imgs_tensor)
@@ -93,14 +81,14 @@ def hflip_batch(imgs_tensor):
 
     return hfliped_imgs
 
-ccrop = transforms.Compose([
-            de_preprocess,
-            transforms.ToPILImage(),
-            transforms.Resize([128, 128]),
-            transforms.CenterCrop([112, 112]),
-            transforms.ToTensor(),
-            transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
-        ])
+ccrop = transforms.Compose([de_preprocess,
+                            transforms.ToPILImage(),
+                            transforms.Resize([256, 256]),
+                            transforms.CenterCrop([224, 224]),
+                            transforms.ToTensor(),
+                            transforms.Normalize([0.5, 0.5, 0.5],
+                                                 [0.5, 0.5, 0.5])
+                        ])
 
 def ccrop_batch(imgs_tensor):
     ccropped_imgs = torch.empty_like(imgs_tensor)
@@ -122,6 +110,12 @@ def gen_plot(fpr, tpr):
     plt.close()
 
     return buf
+
+def l2_norm(input, axis=1):
+    norm = torch.norm(input, 2, axis, True)
+    output = torch.div(input, norm)
+
+    return output
 
 def perform_val(multi_gpu, device, embedding_size, batch_size, backbone, carray,
                 issame, nrof_folds=10, tta=True):
@@ -147,8 +141,8 @@ def perform_val(multi_gpu, device, embedding_size, batch_size, backbone, carray,
                 embeddings[idx:idx + batch_size] = l2_norm(emb_batch)
             else:
                 ccropped = ccrop_batch(batch)
-                embeddings[idx:idx + batch_size] = \
-                            l2_norm(backbone(ccropped.to(device))).cpu()
+                emb_batch = backbone(ccropped.to(device)).cpu()
+                embeddings[idx:idx + batch_size] = l2_norm(emb_batch)
             idx += batch_size
         if idx < len(carray):
             batch = torch.tensor(carray[idx:])
@@ -160,7 +154,8 @@ def perform_val(multi_gpu, device, embedding_size, batch_size, backbone, carray,
                 embeddings[idx:] = l2_norm(emb_batch)
             else:
                 ccropped = ccrop_batch(batch)
-                embeddings[idx:] = l2_norm(backbone(ccropped.to(device))).cpu()
+                emb_batch = backbone(ccropped.to(device)).cpu()
+                embeddings[idx:] = l2_norm(emb_batch)
 
     tpr, fpr, accuracy, best_thresholds = evaluate(embeddings,issame,nrof_folds)
     buf = gen_plot(fpr, tpr)
@@ -173,36 +168,4 @@ def buffer_val(writer, db_name, acc, best_threshold, roc_curve_tensor, epoch):
     writer.add_scalar('{}_Accuracy'.format(db_name), acc, epoch)
     writer.add_scalar('{}_Best_Threshold'.format(db_name), best_threshold,epoch)
     writer.add_image('{}_ROC_Curve'.format(db_name), roc_curve_tensor, epoch)
-
-class AverageMeter(object):
-    """Computes and stores the average and current value"""
-    def __init__(self):
-        self.reset()
-
-    def reset(self):
-        self.val = 0
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
-
-    def update(self, val, n=1):
-        self.val = val
-        self.sum += val * n
-        self.count += n
-        self.avg = self.sum / self.count
-
-def accuracy(output, target, topk=(1,)):
-    """Computes the precision@k for the specified values of k"""
-    maxk = max(topk)
-    batch_size = target.size(0)
-
-    _, pred = output.topk(maxk, 1, True, True)
-    pred = pred.t()
-    correct = pred.eq(target.view(1, -1).expand_as(pred))
-
-    res = []
-    for k in topk:
-        correct_k = correct[:k].view(-1).float().sum(0)
-        res.append(correct_k.mul_(100.0 / batch_size))
-    return res
 
