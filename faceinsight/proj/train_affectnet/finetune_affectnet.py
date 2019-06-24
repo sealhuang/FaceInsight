@@ -263,7 +263,7 @@ def main():
 
     # Observe that all parameters are being optimized
     optimizer_ft = optim.SGD(params_to_update, lr=init_lr, momentum=0.9,
-                             weight_decay=1e-6)
+                             weight_decay=1e-3)
 
     # Setup the loss fxn
     criterion = nn.CrossEntropyLoss()
