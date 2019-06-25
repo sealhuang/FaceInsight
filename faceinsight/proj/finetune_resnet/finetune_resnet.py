@@ -46,18 +46,21 @@ class clsNet1(nn.Module):
     def __init__(self, base_model, class_num):
         super(clsNet1, self).__init__()
         self.base_model = base_model
-        self.fc1 = nn.Linear(2048, 1024, bias=False)
+        #self.fc1 = nn.Linear(2048, 1024, bias=False)
+        self.fc1 = nn.Linear(2048, 256, bias=False)
         self.drop1 = nn.Dropout(0.5)
-        self.fc2 = nn.Linear(1024, 256, bias=False)
-        self.fc3 = nn.Linear(256, class_num, bias=True)
+        #self.fc2 = nn.Linear(1024, 256, bias=False)
+        self.fc2 = nn.Linear(256, 2, bias=True)
+        #self.fc3 = nn.Linear(256, class_num, bias=True)
 
     def forward(self, x):
         x = self.base_model(x)
         x = x.view(x.size(0), -1)
         x = F.relu(self.fc1(x))
         x = self.drop1(x)
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
+        #x = F.relu(self.fc2(x))
+        #x = self.fc3(x)
+        x = self.fc2(x)
         return x
 
 def load_weight_dict(model, fname):
@@ -220,6 +223,9 @@ def load_data(factor, data_dir, sample_size_per_class,
 
 def train(model, criterion, device, train_loader, optimizer, epoch, writer):
     model.train()
+    for m in model.modules():
+        if isinstance(m, nn.BatchNorm2d):
+            m.eval()
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
@@ -326,8 +332,11 @@ def train_ensemble_model_sugar(factor, random_seed):
         # summary writer config
         writer = SummaryWriter()
         #writer.add_graph(model, torch.zeros(1, 3, 224, 224).to(device), False)
-        optimizer = optim.SGD([{'params': params_update, 'weight_decay': 1e-8}],
-                               lr=2e-4, momentum=0.9)
+        optimizer = optim.SGD([
+                            #{'params': params_update, 'weight_decay': 1e-8},
+                                {'params': model.fc1.parameters(), 'lr': 1e-3},
+                                {'params': model.fc2.parameters()}],
+                            lr=1e-3, momentum=0.9, weight_decay=1e-8)
         scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20,
                                               gamma=0.5)
         criterion = nn.CrossEntropyLoss(reduction='mean')
@@ -386,7 +395,7 @@ def train_ensemble_model():
     #    lr=0.001, gamma=0.1
     #factor_list = ['E', 'I', 'M', 'Q2', 'X1', 'Y1', 'Y2', 'Y3']
     factor_list = ['A']
-    seed = 100
+    seed = 10
     for f in factor_list:
         print('Factor %s'%(f))
         train_ensemble_model_sugar(f, seed)
