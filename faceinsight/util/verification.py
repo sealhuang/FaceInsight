@@ -34,7 +34,8 @@ from scipy.spatial.distance import pdist
 # Support: ['calculate_roc', 'calculate_accuracy', 'calculate_val', 'calculate_val_far', 'evaluate']
 
 
-def calculate_roc(thresholds, embeddings1, embeddings2, actual_issame, nrof_folds = 10, pca = 0):
+def calculate_roc(thresholds, embeddings1, embeddings2, actual_issame,
+                  nrof_folds=10, pca=0):
     assert (embeddings1.shape[0] == embeddings2.shape[0])
     assert (embeddings1.shape[1] == embeddings2.shape[1])
     nrof_pairs = min(len(actual_issame), embeddings1.shape[0])

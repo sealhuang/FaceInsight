@@ -16,8 +16,9 @@ from faceinsight.loss.focal import FocalLoss
 from faceinsight.util.utils import get_time
 from faceinsight.util.utils import make_weights_for_balanced_classes 
 from faceinsight.util.utils import schedule_lr, warm_up_lr
-from faceinsight.util.utils import get_val_pair, perform_val, buffer_val
 from faceinsight.util.meter import AverageMeter, accuracy
+from faceinsight.io.pubdataloader import get_lfw_val_pair
+from faceinsight.util.utils import perform_lfw_val, buffer_val
 
 from config import configurations
 
@@ -126,7 +127,10 @@ if __name__ == '__main__':
     print("Number of Training Classes: {}".format(NUM_CLASS))
 
     # get val data
-    lfw, lfw_issame = get_val_pair(DATA_ROOT, 'lfw')
+    lfw_img_dir = os.path.join(DATA_ROOT, 'lfw', 'aligned')
+    lfw_pair_file = os.path.join(DATA_ROOT, 'lfw', 'pairs.txt')
+    lfw_pairs, lfw_issame = get_lfw_val_pair(lfw_pair_file, lfw_img_dir)
+    #lfw, lfw_issame = get_val_pair(DATA_ROOT, 'lfw')
 
     # ======= model & loss & optimizer =======#
     if BACKBONE_NAME=='shufflenet_v2_x0_5':
@@ -284,7 +288,10 @@ if __name__ == '__main__':
         print('=' * 60)
         print('Perform Evaluation on LFW, and Save Checkpoints...')
         # Val score for LFW
-        accuracy_lfw, best_threshold_lfw, roc_curve_lfw = perform_val(
+        #accuracy_lfw, best_threshold_lfw, roc_curve_lfw = perform_val(
+        #                    MULTI_GPU, DEVICE, EMBEDDING_SIZE, BATCH_SIZE,
+        #                    BACKBONE, lfw, lfw_issame)
+        accuracy_lfw, best_threshold_lfw, roc_curve_lfw = perform_lfw_val(
                             MULTI_GPU, DEVICE, EMBEDDING_SIZE, BATCH_SIZE,
                             BACKBONE, lfw, lfw_issame)
         buffer_val(writer, 'LFW', accuracy_lfw, best_threshold_lfw,

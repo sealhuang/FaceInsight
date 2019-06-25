@@ -16,6 +16,7 @@ plt.switch_backend('agg')
 
 import torch
 import torchvision.transforms as transforms
+from torchvision.transforms.functional import to_tensor
 import torch.nn.functional as F
 
 from .verification import evaluate
@@ -168,4 +169,65 @@ def buffer_val(writer, db_name, acc, best_threshold, roc_curve_tensor, epoch):
     writer.add_scalar('{}_Accuracy'.format(db_name), acc, epoch)
     writer.add_scalar('{}_Best_Threshold'.format(db_name), best_threshold,epoch)
     writer.add_image('{}_ROC_Curve'.format(db_name), roc_curve_tensor, epoch)
+
+def read_imgs(files):
+    imgs = []
+    for item in files:
+        with open(item, 'rb') as f:
+            img = Image.open(f).convert('RGB')
+            img = to_tensor(img)
+            img = (img - 0.5) / 0.5
+            imgs.append(img)
+
+    return torch.stack(imgs, dim=0)
+
+def perform_lfw_val(multi_gpu, device, embedding_size, batch_size, backbone,
+                    imgs, issame, nrof_folds=10, tta=True):
+    if multi_gpu:
+        # unpackage model from DataParallel
+        backbone = backbone.module
+        backbone = backbone.to(device)
+    else:
+        backbone = backbone.to(device)
+    # switch to evaluation mode
+    backbone.eval()
+
+    idx = 0
+    embeddings = np.zeros([len(imgs), embedding_size])
+    with torch.no_grad():
+        while idx + batch_size <= len(imgs):
+            batch_files = imgs[idx:idx+batch_size]
+            batch = read_imgs(batch_files)
+            print(batch.size)
+            if tta:
+                ccropped = ccrop_batch(batch)
+                fliped = hflip_batch(ccropped)
+                emb_batch = backbone(ccropped.to(device)).cpu() + \
+                            backbone(fliped.to(device)).cpu()
+                embeddings[idx:idx + batch_size] = l2_norm(emb_batch)
+            else:
+                ccropped = ccrop_batch(batch)
+                emb_batch = backbone(ccropped.to(device)).cpu()
+                embeddings[idx:idx + batch_size] = l2_norm(emb_batch)
+            idx += batch_size
+        if idx < len(imgs):
+            batch_files = imgs[idx:]
+            batch = read_imgs(batch_files)
+            if tta:
+                ccropped = ccrop_batch(batch)
+                fliped = hflip_batch(ccropped)
+                emb_batch = backbone(ccropped.to(device)).cpu() + \
+                            backbone(fliped.to(device)).cpu()
+                embeddings[idx:] = l2_norm(emb_batch)
+            else:
+                ccropped = ccrop_batch(batch)
+                emb_batch = backbone(ccropped.to(device)).cpu()
+                embeddings[idx:] = l2_norm(emb_batch)
+
+    tpr, fpr, accuracy, best_thresholds = evaluate(embeddings,issame,nrof_folds)
+    buf = gen_plot(fpr, tpr)
+    roc_curve = Image.open(buf)
+    roc_curve_tensor = transforms.ToTensor()(roc_curve)
+
+    return accuracy.mean(), best_thresholds.mean(), roc_curve_tensor
 
