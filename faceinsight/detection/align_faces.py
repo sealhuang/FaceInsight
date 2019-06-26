@@ -46,20 +46,26 @@ def main(args):
                                                min_face_size=args.min_face_size,
                                                device=args.mode)
 
-                    # If the landmarks cannot be detected, the img will be 
+                    # If the landmarks cannot be detected, the img will be
                     # discarded
                     if len(landmarks)==0: 
                         print("{} is discarded due to non-detected landmarks!".format(image_path))
                         continue
                     # If multiple faces are found, we choose one face which
-                    # has larger size
+                    # is located center and has larger size
                     elif len(landmarks)>1:
-                        face_sizes = []
+                        face_weights = []
                         for line in landmarks:
                             tmp = [[line[j], line[j + 5]] for j in range(5)]
                             tmp = np.array(tmp)
                             face_len = tmp.max(axis=0) - tmp.min(axis=0)
-                            face_sizes.append(face_len[0] * face_len[1])
+                            face_center = (tmp.max(axis=0) + tmp.min(axis=0))/2
+                            img_center = np.array(img.size)/2
+                            center_diff = face_center - img_center
+                            center_dist = np.sqrt(np.square(center_diff[0]) + \
+                                                  np.square(center_diff[1]))
+                            face_weights.append(face_len[0]*face_len[1]-center_dist*2)
+
                         idx = np.argmax(face_sizes)
                         landmarks = [landmarks[idx]]
 
