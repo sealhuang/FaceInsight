@@ -69,10 +69,10 @@ def get_reference_facial_points(output_size=None, inner_padding_factor=0.0,
     #print('\n===> get_reference_facial_points():')
 
     #print('---> Params:')
-    #print('            output_size: ', output_size)
-    #print('            inner_padding_factor: ', inner_padding_factor)
-    #print('            outer_padding:', outer_padding)
-    #print('            default_square: ', default_square)
+    #print('\toutput_size: ', output_size)
+    #print('\tinner_padding_factor: ', inner_padding_factor)
+    #print('\touter_padding:', outer_padding)
+    #print('\tdefault_square: ', default_square)
 
     tmp_5pts = np.array(REFERENCE_FACIAL_POINTS)
     tmp_crop_size = np.array(DEFAULT_CROP_SIZE)

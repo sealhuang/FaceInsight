@@ -147,7 +147,7 @@ def parse_arguments(argv):
                         help='Image size in pixels (224 by default).')
     parser.add_argument('--min_face_size',
                         type=int,
-                        default=20,
+                        default=35,
                         help='Minimum face size in pixels (35 by default).')
     parser.add_argument('--scaler',
                         type=float,
