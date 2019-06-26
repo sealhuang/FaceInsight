@@ -10,6 +10,7 @@ from PIL import Image
 from faceinsight.detection import detect_faces
 from faceinsight.detection.align_trans import get_reference_facial_points
 from faceinsight.detection.align_trans import warp_and_crop_face
+from faceinsight.detection.matlab_cp2tform import get_similarity_transform
 from faceinsight.io.dataset import get_dataset
 
 def main(args):
@@ -22,14 +23,6 @@ def main(args):
     ds = get_dataset(args.source_dir, has_class_directories=args.has_class_dirs)
     
     print('Align faces ...')
-
-    # XXX
-    ## specify size of aligned faces, align and crop with padding
-    ## due to the bounding box was expanding by a scalar, the `real` face size
-    ## should be corrected
-    #scale = args.image_size * 1.0 /args.expand_scalar / 112.
-    #offset = args.image_size * (args.expand_scalar - 1.1) / 2
-    #reference = get_reference_facial_points(default_square=True) * scale + offset
 
     nrof_images_total = 0
     nrof_successfully_aligned = 0
@@ -61,9 +54,9 @@ def main(args):
                     facial5points = [[landmarks[0][j], landmarks[0][j + 5]]
                                         for j in range(5)]
                     ref5points = get_reference_facial_points()
-                    src_eye_dist = np.sqrt(np.square(facial5points[0][0]-facial5points[1][0]) + np.square(facial5points[0][1]-facial5points[1][1]))
-                    ref_eye_dist = np.sqrt(np.square(ref5points[0][0]-ref5points[1][0]) + np.square(ref5points[0][1]-ref5points[1][1]))
-                    scale = src_eye_dist / ref_eye_dist
+                    tfm = get_similarity_transform(ref5points,
+                                                   np.array(facial5points))
+                    scale = tfm[0][0][0]
                     img_width, img_height = img.size
                     size_diff = np.array([img_width, img_height]) - \
                                 np.array([96*scale, 112*scale])
