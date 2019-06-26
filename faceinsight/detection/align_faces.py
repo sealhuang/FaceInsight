@@ -51,6 +51,18 @@ def main(args):
                     if len(landmarks)==0: 
                         print("{} is discarded due to non-detected landmarks!".format(image_path))
                         continue
+                    # If multiple faces are found, we choose one face which
+                    # has larger size
+                    elif len(landmarks)>1:
+                        face_sizes = []
+                        for line in landmarks:
+                            tmp = [[line[j], line[j + 5]] for j in range(5)]
+                            tmp = np.array(tmp)
+                            face_len = tmp.max(axis=0) - tmp.min(axis=0)
+                            face_sizes.append(face_len[0] * face_len[1])
+                        idx = np.argmax(face_sizes)
+                        landmarks = [landmarks[idx]]
+
                     facial5points = [[landmarks[0][j], landmarks[0][j + 5]]
                                         for j in range(5)]
                     ref5points = get_reference_facial_points()
