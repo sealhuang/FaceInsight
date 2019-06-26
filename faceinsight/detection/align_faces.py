@@ -66,7 +66,7 @@ def main(args):
                     scale = src_eye_dist / ref_eye_dist
                     img_width, img_height = img.size
                     size_diff = np.array([img_width, img_height]) - \
-                                np.array([96, 112])
+                                np.array([96*scale, 112*scale])
                     nref5points = ref5points * scale + size_diff/2
 
                     warped_face = warp_and_crop_face(np.array(img),
