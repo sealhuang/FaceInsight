@@ -33,7 +33,7 @@ configurations = {
         RGB_STD = [0.5, 0.5, 0.5],
         # feature dimension
         EMBEDDING_SIZE = 512,
-        BATCH_SIZE = 512,
+        BATCH_SIZE = 256,
         # whether drop the last batch to ensure consistent batch_norm statistics
         DROP_LAST = True,
         # initial LR

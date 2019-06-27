@@ -19,13 +19,13 @@ def get_lfw_val_pair(pair_file, img_dir):
     # data containers
     val_imgs = []
     val_labels = []
-    for line in set_info:
+    for line in pair_info:
         # same pair
         if len(line)==3:
             img1 = os.path.join(img_dir, line[0],
-                                '%s_%04d.jpg'%(line[0], line[1]))
+                                '%s_%04d.png'%(line[0], int(line[1])))
             img2 = os.path.join(img_dir, line[0],
-                                '%s_%04d.jpg'%(line[0], line[2]))
+                                '%s_%04d.png'%(line[0], int(line[2])))
             if os.path.exists(img1) and os.path.exists(img2):
                 val_imgs.append(img1)
                 val_imgs.append(img2)
@@ -33,15 +33,15 @@ def get_lfw_val_pair(pair_file, img_dir):
         # different pair
         elif len(line)==4:
             img1 = os.path.join(img_dir, line[0],
-                                '%s_%04d.jpg'%(line[0], line[1]))
+                                '%s_%04d.png'%(line[0], int(line[1])))
             img2 = os.path.join(img_dir, line[2],
-                                '%s_%04d.jpg'%(line[2], line[3]))
+                                '%s_%04d.png'%(line[2], int(line[3])))
             if os.path.exists(img1) and os.path.exists(img2):
                 val_imgs.append(img1)
                 val_imgs.append(img2)
                 val_labels.append(0)
-        assert len(val_imgs)==len(val_labels)*2, 'Unmatch data pair'
-        print('%s pairs collected'%(len(val_labels)))
+    assert len(val_imgs)==len(val_labels)*2, 'Unmatch data pair'
+    print('%s pairs collected'%(len(val_labels)))
 
     return val_imgs, np.array(val_labels)
 

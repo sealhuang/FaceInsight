@@ -198,7 +198,6 @@ def perform_lfw_val(multi_gpu, device, embedding_size, batch_size, backbone,
         while idx + batch_size <= len(imgs):
             batch_files = imgs[idx:idx+batch_size]
             batch = read_imgs(batch_files)
-            print(batch.size)
             if tta:
                 ccropped = ccrop_batch(batch)
                 fliped = hflip_batch(ccropped)

@@ -23,11 +23,11 @@ from faceinsight.util.utils import perform_lfw_val, buffer_val
 from config import configurations
 
 
-def separate_bn_params(modules):
+def separate_bn_paras(modules):
     if not isinstance(modules, list):
         modules = [*modules.modules()]
-    params_only_bn = []
-    params_wo_bn = []
+    paras_only_bn = []
+    paras_wo_bn = []
     for layer in modules:
         if 'model' in str(layer.__class__):
             continue
@@ -35,11 +35,11 @@ def separate_bn_params(modules):
             continue
         else:
             if 'batchnorm' in str(layer.__class__):
-                params_only_bn.extend([*layer.parameters()])
+                paras_only_bn.extend([*layer.parameters()])
             else:
-                params_wo_bn.extend([*layer.parameters()])
+                paras_wo_bn.extend([*layer.parameters()])
 
-    return params_only_bn, params_wo_bn
+    return paras_only_bn, paras_wo_bn
 
 
 if __name__ == '__main__':
@@ -55,8 +55,12 @@ if __name__ == '__main__':
     DATA_ROOT = cfg['DATA_ROOT']
     # the root to buffer your checkpoints
     MODEL_ROOT = cfg['MODEL_ROOT']
+    if not os.path.exists(MODEL_ROOT):
+        os.makedirs(MODEL_ROOT, mode=0o755)
     # the root to log your train/val status
     LOG_ROOT = cfg['LOG_ROOT']
+    if not os.path.exists(LOG_ROOT):
+        os.makedirs(LOG_ROOT, mode=0o755)
     # the root to resume training from a saved checkpoint
     BACKBONE_RESUME_ROOT = cfg['BACKBONE_RESUME_ROOT']
     # the root to resume training from a saved checkpoint
@@ -126,7 +130,7 @@ if __name__ == '__main__':
     print("Number of Training Classes: {}".format(NUM_CLASS))
 
     # get val data
-    lfw_img_dir = os.path.join(DATA_ROOT, 'lfw', 'aligned')
+    lfw_img_dir = os.path.join(DATA_ROOT, 'lfw', 'cropped')
     lfw_pair_file = os.path.join(DATA_ROOT, 'lfw', 'pairs.txt')
     lfw_pairs, lfw_issame = get_lfw_val_pair(lfw_pair_file, lfw_img_dir)
     #lfw, lfw_issame = get_val_pair(DATA_ROOT, 'lfw')
@@ -292,7 +296,7 @@ if __name__ == '__main__':
         #                    BACKBONE, lfw, lfw_issame)
         accuracy_lfw, best_threshold_lfw, roc_curve_lfw = perform_lfw_val(
                             MULTI_GPU, DEVICE, EMBEDDING_SIZE, BATCH_SIZE,
-                            BACKBONE, lfw, lfw_issame)
+                            BACKBONE, lfw_pairs, lfw_issame)
         buffer_val(writer, 'LFW', accuracy_lfw, best_threshold_lfw,
                    roc_curve_lfw, batch+1)
         print('Epoch {}/{}, Evaluation: LFW Acc: {}'.format(epoch+1, NUM_EPOCH,
