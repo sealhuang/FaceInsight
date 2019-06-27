@@ -11,20 +11,20 @@ configurations = {
         # the parent root where your train/val/test data are stored
         DATA_ROOT = '/home/huanglj/database',
         # the root to buffer your checkpoints
-        MODEL_ROOT = '/home/huanglj/proj/buffer/model_msceleb',
+        MODEL_ROOT = '/home/huanglj/proj/buffer/model_facenet',
         # the root to log your train/val status
-        LOG_ROOT = '/home/huanglj/proj/buffer/log_msceleb', 
+        LOG_ROOT = '/home/huanglj/proj/buffer/log_facenet', 
         # the root to resume training from a saved checkpoint
         BACKBONE_RESUME_ROOT = './',
         # the root to resume training from a saved checkpoint
         HEAD_RESUME_ROOT = './',
 
         # ['shufflenet_v2_x0_5', 'shufflenet_v2_1_0']
-        BACKBONE_NAME = 'shufflenet_v2_x0_5',
+        BACKBONE_NAME = 'shufflenet_v2_x1_0',
         # HEAD: ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
         HEAD_NAME = 'ArcFace',
         # support: ['Focal', 'Softmax']
-        LOSS_NAME = 'Focal',
+        LOSS_NAME = 'Softmax',
 
         # support: [112, 112] and [224, 224]
         INPUT_SIZE = [224, 224],

@@ -105,8 +105,7 @@ if __name__ == '__main__':
                         transforms.ToTensor(),
                         transforms.Normalize(mean=RGB_MEAN, std=RGB_STD),
                         ])
-    train_data_dir = os.path.join(DATA_ROOT, 'MS-Celeb-1M', 'extracted',
-                                  'clean')
+    train_data_dir = os.path.join(DATA_ROOT, 'CASIA-WebFace', 'cropped')
     dataset_train = datasets.ImageFolder(train_data_dir, train_transform)
 
     # create a weighted random sampler to process imbalanced data
