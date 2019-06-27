@@ -92,8 +92,7 @@ def main(args):
         p.map(partial(worker, output_class_dir=output_class_dir,
                       min_face_size=args.min_face_size, mode=args.mode),
               cls.image_paths)
-    aligned_ds = get_dataset(output_dir,
-                             has_class_directories=args.has_class_dirs)
+    aligned_ds = get_dataset(output_dir, has_class_directories=True)
     total_aligned_img_num = 0
     for cls in aligned_ds:
         total_aligned_img_num += len(cls)
