@@ -74,7 +74,7 @@
     ```
   * Training \& validation statistics
   
-    <img src="https://github.com/ZhaoJ9014/face.evoLVe.PyTorch/blob/master/disp/Fig13.png" width="1000px"/>
+    <img src="https://github.com/sealhuang/FaceInsight/blob/master/faceinsight/disp/Fig13.png" width="1000px"/>
       
   * Performance
 
