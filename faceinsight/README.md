@@ -4,8 +4,6 @@
 * [Introduction](#Introduction)
 * [Pre-Requisites](#Pre-Requisites)
 * [Data Zoo](#Data-Zoo)
-* [Model Zoo](#Model-Zoo)
-* [Achievement](#Achievement)
 
 ****
 ### Introduction 
@@ -90,41 +88,5 @@ While not required, for optimal performance it is **highly** recommended to run 
   ```
 * Remark: We share ```MS-Celeb-1M_Top1M_MID2Name.tsv``` ([Google Drive](https://drive.google.com/file/d/15X_mIcmcC38KjHA2NAGUIsNXF_iUeMbX/view?usp=sharing), [Baidu Drive](https://pan.baidu.com/s/1AyZBr_Iow1StS3OzWedT1A)), ```VGGface2_ID2Name.csv``` ([Google Drive](https://drive.google.com/file/d/1tSMrzwkWMCuOycNIjpx9GC3P2Pr1oPOU/view?usp=sharing), [Baidu Drive](https://pan.baidu.com/s/1fRJKvgBxTcd4j6fCfmEUOw)), ```VGGface2_FaceScrub_Overlap.txt``` ([Google Drive](https://drive.google.com/file/d/1M9F29t0WvAIJWhsBn5xyl00VL-7wBYkc/view?usp=sharing), [Baidu Drive](https://pan.baidu.com/s/1ppZ2qcMfZ8bXq5Sf5LHijA)), ```VGGface2_LFW_Overlap.txt``` ([Google Drive](https://drive.google.com/file/d/13MO7su1z0G_Aqc5HwzImBxctORJjyDlO/view?usp=sharing), [Baidu Drive](https://pan.baidu.com/s/1Sl6JIt99oX9G9YwP4HVq2A)), ```CASIA-WebFace_ID2Name.txt``` ([Google Drive](https://drive.google.com/file/d/1Unqo5E5JR2tSNK0g7KhC6uwYM3tTXXVu/view?usp=sharing), [Baidu Drive](https://pan.baidu.com/s/1zlYTOeLRgGPIR-yPeEurRw)), ```CASIA-WebFace_FaceScrub_Overlap.txt``` ([Google Drive](https://drive.google.com/file/d/1xHM6JJXv5cl7xmSbZ1mkXyJpXnEgNV4x/view?usp=sharing), [Baidu Drive](https://pan.baidu.com/s/1smuVPG0j7Zikd7UladBSew)), ```CASIA-WebFace_LFW_Overlap.txt``` ([Google Drive](https://drive.google.com/file/d/1blFEbNGEfncAUQKCeCTb__rv221oZo80/view?usp=sharing), [Baidu Drive](https://pan.baidu.com/s/10rwsLZFA25e6cW1gJDDZGQ)), ```FaceScrub_Name.txt``` ([Google Drive](https://drive.google.com/file/d/1R8MofI3pXGAuHsD5wswZXLPBHg8zll25/view?usp=sharing), [Baidu Drive](https://pan.baidu.com/s/12fryVZO6ytpHhjMidvZpxQ)), ```LFW_Name.txt``` ([Google Drive](https://drive.google.com/file/d/1zC-0R3sL_wf2Oq1exMpDvJUGnW0VPcWs/view?usp=sharing), [Baidu Drive](https://pan.baidu.com/s/1OFW8vJajkvTviUMiSNwdXA)), ```LFW_Log.txt``` ([Google Drive](https://drive.google.com/file/d/1afCfVNnguaCaKktsZn8q5CNlqThfeZYk/view?usp=sharing), [Baidu Drive](https://pan.baidu.com/s/1TsQOez_11WcViTV9eo4qOQ)) to help researchers/engineers quickly remove the overlapping parts between their own private datasets and the public datasets.
 * Due to release license issue, for other face related databases, please make contact with us in person for more details.
-
-****
-### Model Zoo 
-
-* Model
-
-  |Backbone|Head|Loss|Training Data|Download Link|
-  |:---:|:---:|:---:|:---:|:---:|
-  |[IR-50](https://arxiv.org/pdf/1512.03385.pdf)|[ArcFace](https://arxiv.org/pdf/1801.07698.pdf)|[Focal](https://arxiv.org/pdf/1708.02002.pdf)|[MS-Celeb-1M_Align_112x112](https://arxiv.org/pdf/1607.08221.pdf)|[Google Drive](https://drive.google.com/drive/folders/1omzvXV_djVIW2A7I09DWMe9JR-9o_MYh?usp=sharing), [Baidu Drive](https://pan.baidu.com/s/1L8yOF1oZf6JHfeY9iN59Mg)|
-
-  * Setting
-    ```
-    INPUT_SIZE: [112, 112]; RGB_MEAN: [0.5, 0.5, 0.5]; RGB_STD: [0.5, 0.5, 0.5]; BATCH_SIZE: 512 (drop the last batch to ensure consistent batch_norm statistics); Initial LR: 0.1; NUM_EPOCH: 120; WEIGHT_DECAY: 5e-4 (do not apply to batch_norm parameters); MOMENTUM: 0.9; STAGES: [30, 60, 90]; Augmentation: Random Crop + Horizontal Flip; Imbalanced Data Processing: Weighted Random Sampling; Solver: SGD; GPUs: 4 NVIDIA Tesla P40 in Parallel
-    ```
-  * Training \& validation statistics
-  
-    <img src="https://github.com/ZhaoJ9014/face.evoLVe.PyTorch/blob/master/disp/Fig13.png" width="1000px"/>
-      
-  * Performance
-
-    |[LFW](https://hal.inria.fr/file/index/docid/321923/filename/Huang_long_eccv2008-lfw.pdf)|[CFP_FF](http://www.cfpw.io/paper.pdf)|[CFP_FP](http://www.cfpw.io/paper.pdf)|[AgeDB](http://openaccess.thecvf.com/content_cvpr_2017_workshops/w33/papers/Moschoglou_AgeDB_The_First_CVPR_2017_paper.pdf)|[CALFW](https://arxiv.org/pdf/1708.08197.pdf)|[CPLFW](http://www.whdeng.cn/CPLFW/Cross-Pose-LFW.pdf)|[Vggface2_FP](https://arxiv.org/pdf/1710.08092.pdf)|
-    |:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-    |99.78|99.69|98.14|97.53|95.87|92.45|95.22|
-
-* Model
-
-  |Backbone|Head|Loss|Training Data|Download Link|
-  |:---:|:---:|:---:|:---:|:---:|
-  |[IR-50](https://arxiv.org/pdf/1512.03385.pdf)|[ArcFace](https://arxiv.org/pdf/1801.07698.pdf)|[Focal](https://arxiv.org/pdf/1708.02002.pdf)|Private Asia Face Data|[Google Drive](https://drive.google.com/drive/folders/11TI4Gs_lO-fbts7cgWNqvVfm9nps2msE?usp=sharing), [Baidu Drive](https://pan.baidu.com/s/18BSUeA1bpAeRWTprtHgX9w)|
-
-  * Setting
-    ```
-    INPUT_SIZE: [112, 112]; RGB_MEAN: [0.5, 0.5, 0.5]; RGB_STD: [0.5, 0.5, 0.5]; BATCH_SIZE: 1024 (drop the last batch to ensure consistent batch_norm statistics); Initial LR: 0.01 (initialize weights from the above model pre-trained on MS-Celeb-1M_Align_112x112); NUM_EPOCH: 80; WEIGHT_DECAY: 5e-4 (do not apply to batch_norm parameters); MOMENTUM: 0.9; STAGES: [20, 40, 60]; Augmentation: Random Crop + Horizontal Flip; Imbalanced Data Processing: Weighted Random Sampling; Solver: SGD; GPUs: 8 NVIDIA Tesla P40 in Parallel
-    ```
-
-  * Performance (please perform evaluation on your own Asia face benchmark dataset)
 
 
