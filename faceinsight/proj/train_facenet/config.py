@@ -44,7 +44,7 @@ configurations = {
         WEIGHT_DECAY = 5e-4,
         MOMENTUM = 0.9,
         # batch stages to decay learning rate
-        STAGES = [35, 65, 95],
+        STAGES = [21, 35, 60, 85],
 
         DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
         # flag to use multiple GPUs; if you choose to train with single GPU,

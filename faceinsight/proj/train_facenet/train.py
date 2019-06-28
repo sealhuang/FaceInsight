@@ -221,12 +221,10 @@ if __name__ == '__main__':
         # adjust LR for each training stage after warm up, you can also
         # choose to adjust LR manually (with slight modification) once
         # plaueau observed
-        if epoch==STAGES[0]:
-            schedule_lr(OPTIMIZER)
-        if epoch==STAGES[1]:
-            schedule_lr(OPTIMIZER)
-        if epoch==STAGES[2]:
-            schedule_lr(OPTIMIZER)
+        for stage_thresh in STAGES:
+            if epoch+1==stage_thresh:
+                schedule_lr(OPTIMIZER)
+                break
 
         # set to training mode
         BACKBONE.train()
@@ -244,12 +242,8 @@ if __name__ == '__main__':
             # compute output
             inputs = inputs.to(DEVICE)
             labels = labels.to(DEVICE).long()
-            print(inputs.size())
-            print(labels.size())
             features = BACKBONE(inputs)
-            print(features.size())
             outputs = HEAD(features, labels)
-            print(outputs.size())
             loss = LOSS(outputs, labels)
 
             # measure accuracy and record loss
