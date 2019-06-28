@@ -133,7 +133,6 @@ if __name__ == '__main__':
     lfw_img_dir = os.path.join(DATA_ROOT, 'lfw', 'cropped')
     lfw_pair_file = os.path.join(DATA_ROOT, 'lfw', 'pairs.txt')
     lfw_pairs, lfw_issame = get_lfw_val_pair(lfw_pair_file, lfw_img_dir)
-    #lfw, lfw_issame = get_val_pair(DATA_ROOT, 'lfw')
 
     # ======= model & loss & optimizer =======#
     if BACKBONE_NAME=='shufflenet_v2_x0_5':
@@ -245,8 +244,12 @@ if __name__ == '__main__':
             # compute output
             inputs = inputs.to(DEVICE)
             labels = labels.to(DEVICE).long()
+            print(inputs.size())
+            print(labels.size())
             features = BACKBONE(inputs)
+            print(features.size())
             outputs = HEAD(features, labels)
+            print(outputs.size())
             loss = LOSS(outputs, labels)
 
             # measure accuracy and record loss
