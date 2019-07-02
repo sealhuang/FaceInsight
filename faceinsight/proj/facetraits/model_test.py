@@ -12,9 +12,9 @@ import torch.nn.functional as F
 from torchvision import transforms
 import torchvision.utils as vutils
 from faceinsight.models import vggface
-from faceinsight.align import detect_faces
-from faceinsight.align.align_trans import get_reference_facial_points
-from faceinsight.align.align_trans import warp_and_crop_face
+from faceinsight.detection import detect_faces
+from faceinsight.detection.align_trans import get_reference_facial_points
+from faceinsight.detection.align_trans import warp_and_crop_face
 
 class clsNet1(nn.Module):
     def __init__(self, base_model, class_num):
