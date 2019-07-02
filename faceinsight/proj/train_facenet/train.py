@@ -9,6 +9,7 @@ import torch.optim as optim
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as models
+import torchvision.utils as vutils
 from tensorboardX import SummaryWriter
 
 from faceinsight.head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
@@ -140,6 +141,12 @@ if __name__ == '__main__':
                                              num_classes=EMBEDDING_SIZE)
     elif BACKBONE_NAME=='shufflenet_v2_x1_0':
         BACKBONE = models.shufflenet_v2_x1_0(pretrained=False,
+                                             num_classes=EMBEDDING_SIZE)
+    elif BACKBONE_NAME=='shufflenet_v2_x1_5':
+        BACKBONE = models.shufflenet_v2_x1_5(pretrained=False,
+                                             num_classes=EMBEDDING_SIZE)
+    elif BACKBONE_NAME=='shufflenet_v2_x2_0':
+        BACKBONE = models.shufflenet_v2_x2_0(pretrained=False,
                                              num_classes=EMBEDDING_SIZE)
     print('=' * 60)
     print(BACKBONE)
@@ -282,6 +289,13 @@ if __name__ == '__main__':
               'Training Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
                 epoch+1, NUM_EPOCH, loss=losses, top1=top1, top5=top5))
         print('=' * 60)
+
+        # plot model parameter hist
+        for name, param in BACKBONE.named_parameters():
+            writer.add_histogram(name, param.clone().cpu().data.numpy(),epoch+1)
+        backbone_params = BACKBONE.state_dict()
+        x = vutils.make_grid(backbone_params['conv1.0.weight'].clone().cpu().data, normalize=True, scale_each=True)
+        writer.add_image('conv1', x, epoch+1)
 
         # perform validation & save checkpoints per epoch
         # validation statistics per epoch (buffer for visualization)
