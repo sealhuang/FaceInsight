@@ -30,6 +30,9 @@ def separate_bn_paras(modules):
     paras_only_bn = []
     paras_wo_bn = []
     for layer in modules:
+        #print(layer.__class__)
+        if 'shufflenet_wrapper' in str(layer.__class__):
+            continue
         if 'model' in str(layer.__class__):
             continue
         if 'container' in str(layer.__class__):
@@ -68,7 +71,7 @@ class shufflenet_wrapper(nn.Module):
 
     def forward(self, x):
         x = self.base_model(x)
-        x = self.bn(x)
+        #x = self.bn(x)
 
         return x
 
@@ -201,8 +204,10 @@ if __name__ == '__main__':
     # separate batch_norm parameters from others; do not do weight decay for
     # batch_norm parameters to improve the generalizability
     backbone_paras_only_bn, backbone_paras_wo_bn = separate_bn_paras(BACKBONE)
-    _, head_paras_wo_bn = separate_bn_paras(HEAD)
-    OPTIMIZER = optim.SGD([{'params': backbone_paras_wo_bn + head_paras_wo_bn,
+    #_, head_paras_wo_bn = separate_bn_paras(HEAD)
+    OPTIMIZER = optim.SGD([{'params': backbone_paras_wo_bn,
+                            'weight_decay': WEIGHT_DECAY},
+                           {'params': HEAD.parameters(),
                             'weight_decay': WEIGHT_DECAY},
                            {'params': backbone_paras_only_bn},
                           ],

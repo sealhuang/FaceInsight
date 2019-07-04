@@ -20,7 +20,7 @@ configurations = {
         HEAD_RESUME_ROOT = './',
 
         # ['shufflenet_v2_x0_5', 'shufflenet_v2_1_0']
-        BACKBONE_NAME = 'shufflenet_v2_x1_5',
+        BACKBONE_NAME = 'shufflenet_v2_x1_0',
         # HEAD: ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
         HEAD_NAME = 'ArcFace',
         # support: ['Focal', 'Softmax']
