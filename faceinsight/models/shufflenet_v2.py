@@ -8,8 +8,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from collections import OrderedDict
-from torch.nn import init
-import math
 
 def conv_bn(inp, oup, stride):
     return nn.Sequential(
@@ -130,7 +128,7 @@ class ShuffleNetV2(nn.Module):
 
         # building first layer
         input_channel = self.stage_out_channels[1]
-        self.conv1 = conv_bn(3, input_channel, 2)    
+        self.conv1 = conv_bn(3, input_channel, 2)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         
         self.features = []
@@ -155,18 +153,21 @@ class ShuffleNetV2(nn.Module):
 
         # building last several layers
         self.conv_last = conv_1x1_bn(input_channel, self.stage_out_channels[-1])
-        self.globalpool = nn.Sequential(nn.AvgPool2d(int(input_size/32)))
+        #self.globalpool = nn.Sequential(nn.AvgPool2d(int(input_size/32)))
+        self.maxpool2 = nn.Sequential(nn.MaxPool2d(int(input_size/32)))
 
         # building classifier
         self.classifier = nn.Sequential(nn.Linear(self.stage_out_channels[-1],
-                                                  n_class))
+                                                  n_class,
+                                                  bias=False))
 
     def forward(self, x):
         x = self.conv1(x)
         x = self.maxpool(x)
         x = self.features(x)
         x = self.conv_last(x)
-        x = self.globalpool(x)
+        #x = self.globalpool(x)
+        x = self.maxpool2(x)
         x = x.view(-1, self.stage_out_channels[-1])
         x = self.classifier(x)
         return x

@@ -12,6 +12,7 @@ import torchvision.models as models
 import torchvision.utils as vutils
 from tensorboardX import SummaryWriter
 
+from faceinsight.models.shufflenet_v2 import ShuffleNetV2
 from faceinsight.head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
 from faceinsight.loss.focal import FocalLoss
 from faceinsight.util.utils import get_time
@@ -66,6 +67,40 @@ class shufflenet_wrapper(nn.Module):
         # change the final fc as no-bias
         in_dims = self.base_model.fc.in_features
         self.base_model.fc = nn.Linear(in_dims, embedding_size, bias=False)
+
+        self.bn = nn.BatchNorm1d(embedding_size)
+
+    def forward(self, x):
+        x = self.base_model(x)
+        #x = self.bn(x)
+
+        return x
+
+class shufflenet_wrapper1(nn.Module):
+    def __init__(self, backbone_name, embedding_size):
+        super(shufflenet_wrapper1, self).__init__()
+
+        if backbone_name=='shufflenet_v2_x0_5':
+            self.base_model = ShuffleNetV2(n_class=embedding_size,
+                                           input_size=224,
+                                           width_mult=0.5)
+        elif backbone_name=='shufflenet_v2_x1_0':
+            self.base_model = ShuffleNetV2(n_class=embedding_size,
+                                           input_size=224,
+                                           width_mult=1.0)
+        elif backbone_name=='shufflenet_v2_x1_5':
+            self.base_model = ShuffleNetV2(n_class=embedding_size,
+                                           input_size=224,
+                                           width_mult=1.5)
+        elif backbone_name=='shufflenet_v2_x2_0':
+            self.base_model = ShuffleNetV2(n_class=embedding_size,
+                                           input_size=224,
+                                           width_mult=2.0)
+        else:
+            pass
+        # change the final fc as no-bias
+        #in_dims = self.base_model.fc.in_features
+        #self.base_model.fc = nn.Linear(in_dims, embedding_size, bias=False)
 
         self.bn = nn.BatchNorm1d(embedding_size)
 
@@ -169,7 +204,8 @@ if __name__ == '__main__':
     lfw_pairs, lfw_issame = get_lfw_val_pair(lfw_pair_file, lfw_img_dir)
 
     # ======= model & loss & optimizer =======#
-    BACKBONE = shufflenet_wrapper(BACKBONE_NAME, EMBEDDING_SIZE)
+    #BACKBONE = shufflenet_wrapper(BACKBONE_NAME, EMBEDDING_SIZE)
+    BACKBONE = shufflenet_wrapper1(BACKBONE_NAME, EMBEDDING_SIZE)
     print('=' * 60)
     print(BACKBONE)
     print('{} Backbone Generated'.format(BACKBONE_NAME))
