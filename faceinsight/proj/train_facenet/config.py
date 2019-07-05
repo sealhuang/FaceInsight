@@ -20,14 +20,14 @@ configurations = {
         HEAD_RESUME_ROOT = './',
 
         # ['shufflenet_v2_x0_5', 'shufflenet_v2_1_0', 'mobilefacenet']
-        BACKBONE_NAME = 'shufflenet_v2_x1_0',
+        BACKBONE_NAME = 'mobilefacenet',
         # HEAD: ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
         HEAD_NAME = 'ArcFace',
         # support: ['Focal', 'Softmax']
         LOSS_NAME = 'Focal',
 
         # support: [112, 112] and [224, 224]
-        INPUT_SIZE = [112, 112],
+        INPUT_SIZE = [224, 224],
         # for normalize inputs to [-1, 1]
         RGB_MEAN = [0.5, 0.5, 0.5],
         RGB_STD = [0.5, 0.5, 0.5],

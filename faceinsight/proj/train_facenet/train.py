@@ -47,9 +47,9 @@ def separate_bn_paras(modules):
 
     return paras_only_bn, paras_wo_bn
 
-class get_backbone(nn.Module):
+class backbone_wrapper(nn.Module):
     def __init__(self, backbone_name, embedding_size):
-        super(shufflenet_wrapper, self).__init__()
+        super(backbone_wrapper, self).__init__()
 
         if backbone_name=='shufflenet_v2_x0_5':
             self.base_model = models.shufflenet_v2_x0_5(pretrained=False,
@@ -209,8 +209,8 @@ if __name__ == '__main__':
     lfw_pairs, lfw_issame = get_lfw_val_pair(lfw_pair_file, lfw_img_dir)
 
     # ======= model & loss & optimizer =======#
-    #BACKBONE = shufflenet_wrapper(BACKBONE_NAME, EMBEDDING_SIZE)
-    BACKBONE = shufflenet_wrapper1(BACKBONE_NAME, EMBEDDING_SIZE)
+    BACKBONE = backbone_wrapper(BACKBONE_NAME, EMBEDDING_SIZE)
+    #BACKBONE = shufflenet_wrapper1(BACKBONE_NAME, EMBEDDING_SIZE)
     print('=' * 60)
     print(BACKBONE)
     print('{} Backbone Generated'.format(BACKBONE_NAME))
@@ -356,10 +356,10 @@ if __name__ == '__main__':
         print('=' * 60)
 
         # plot model parameter hist
-        #for name, param in BACKBONE.named_parameters():
-        #    writer.add_histogram(name, param.clone().cpu().data.numpy(),epoch+1)
-        #backbone_params = BACKBONE.state_dict()
-        #x = vutils.make_grid(backbone_params['base_model.conv1.0.weight'].clone().cpu().data, normalize=True, scale_each=True)
+        for name, param in BACKBONE.named_parameters():
+            writer.add_histogram(name, param.clone().cpu().data.numpy(),epoch+1)
+        backbone_params = BACKBONE.state_dict()
+        x = vutils.make_grid(backbone_params['base_model.conv1.conv.weight'].clone().cpu().data, normalize=True, scale_each=True)
         #writer.add_image('conv1', x, epoch+1)
 
         # perform validation & save checkpoints per epoch
