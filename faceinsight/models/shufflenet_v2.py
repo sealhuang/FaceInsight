@@ -7,7 +7,6 @@ from __future__ import division
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from collections import OrderedDict
 
 def conv_bn(inp, oup, stride):
     return nn.Sequential(
@@ -154,12 +153,13 @@ class ShuffleNetV2(nn.Module):
         # building last several layers
         self.conv_last = conv_1x1_bn(input_channel, self.stage_out_channels[-1])
         #self.globalpool = nn.Sequential(nn.AvgPool2d(int(input_size/32)))
-        self.maxpool2 = nn.Sequential(nn.MaxPool2d(int(input_size/32)))
+        #self.maxpool2 = nn.Sequential(nn.MaxPool2d(int(input_size/32)))
 
         # building classifier
         self.classifier = nn.Sequential(nn.Linear(self.stage_out_channels[-1],
                                                   n_class,
                                                   bias=False))
+        self.bn = nn.BatchNorm1d(nclass)
 
     def forward(self, x):
         x = self.conv1(x)
@@ -167,18 +167,11 @@ class ShuffleNetV2(nn.Module):
         x = self.features(x)
         x = self.conv_last(x)
         #x = self.globalpool(x)
-        x = self.maxpool2(x)
-        x = x.view(-1, self.stage_out_channels[-1])
+        #x = self.maxpool2(x)
+        x = x.view(x.size(0), -1)
+        #x = x.view(-1, self.stage_out_channels[-1])
         x = self.classifier(x)
+        x = self.bn(x)
         return x
 
-def shufflenetv2(width_mult=1.):
-    model = ShuffleNetV2(width_mult=width_mult)
-    return model
-    
-if __name__ == "__main__":
-    """Testing
-    """
-    model = ShuffleNetV2()
-    print(model)
-
+ 

@@ -13,6 +13,7 @@ import torchvision.utils as vutils
 from tensorboardX import SummaryWriter
 
 from faceinsight.models.shufflenet_v2 import ShuffleNetV2
+from faceinsight.models.mobilefacenet import MobileFaceNet
 from faceinsight.head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
 from faceinsight.loss.focal import FocalLoss
 from faceinsight.util.utils import get_time
@@ -46,7 +47,7 @@ def separate_bn_paras(modules):
 
     return paras_only_bn, paras_wo_bn
 
-class shufflenet_wrapper(nn.Module):
+class get_backbone(nn.Module):
     def __init__(self, backbone_name, embedding_size):
         super(shufflenet_wrapper, self).__init__()
 
@@ -62,13 +63,17 @@ class shufflenet_wrapper(nn.Module):
         elif backbone_name=='shufflenet_v2_x2_0':
             self.base_model = models.shufflenet_v2_x2_0(pretrained=False,
                                                     num_classes=embedding_size)
+        elif backbone_name=='mobilefacenet':
+            self.base_model = MobileFaceNet(embedding_size)
         else:
             pass
-        # change the final fc as no-bias
-        in_dims = self.base_model.fc.in_features
-        self.base_model.fc = nn.Linear(in_dims, embedding_size, bias=False)
+        
+        if backbone_name.stratswith('shufflenet'):
+            # change the final fc as no-bias
+            in_dims = self.base_model.fc.in_features
+            self.base_model.fc = nn.Linear(in_dims, embedding_size, bias=False)
 
-        self.bn = nn.BatchNorm1d(embedding_size)
+            self.bn = nn.BatchNorm1d(embedding_size)
 
     def forward(self, x):
         x = self.base_model(x)
