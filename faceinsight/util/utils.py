@@ -84,15 +84,16 @@ def hflip_batch(imgs_tensor):
 
 ccrop = transforms.Compose([de_preprocess,
                             transforms.ToPILImage(),
-                            transforms.Resize([256, 256]),
-                            transforms.CenterCrop([224, 224]),
+                            transforms.Resize([128, 128]),
+                            transforms.CenterCrop([112, 112]),
                             transforms.ToTensor(),
                             transforms.Normalize([0.5, 0.5, 0.5],
                                                  [0.5, 0.5, 0.5])
                         ])
 
 def ccrop_batch(imgs_tensor):
-    ccropped_imgs = torch.empty_like(imgs_tensor)
+    ccropped_imgs = torch.empty((imgs_tensor.size()[0], 3, 112, 112))
+    #ccropped_imgs = torch.empty_like(imgs_tensor)
     for i, img_ten in enumerate(imgs_tensor):
         ccropped_imgs[i] = ccrop(img_ten)
 

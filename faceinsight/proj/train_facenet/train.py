@@ -177,7 +177,7 @@ if __name__ == '__main__':
     writer = SummaryWriter(LOG_ROOT)
 
     train_transform = transforms.Compose([
-                        transforms.Resize(240),
+                        transforms.Resize(128),
                         transforms.RandomCrop([INPUT_SIZE[0], INPUT_SIZE[1]]),
                         transforms.RandomHorizontalFlip(),
                         transforms.ToTensor(),
@@ -356,20 +356,17 @@ if __name__ == '__main__':
         print('=' * 60)
 
         # plot model parameter hist
-        for name, param in BACKBONE.named_parameters():
-            writer.add_histogram(name, param.clone().cpu().data.numpy(),epoch+1)
-        backbone_params = BACKBONE.state_dict()
-        x = vutils.make_grid(backbone_params['base_model.conv1.0.weight'].clone().cpu().data, normalize=True, scale_each=True)
-        writer.add_image('conv1', x, epoch+1)
+        #for name, param in BACKBONE.named_parameters():
+        #    writer.add_histogram(name, param.clone().cpu().data.numpy(),epoch+1)
+        #backbone_params = BACKBONE.state_dict()
+        #x = vutils.make_grid(backbone_params['base_model.conv1.0.weight'].clone().cpu().data, normalize=True, scale_each=True)
+        #writer.add_image('conv1', x, epoch+1)
 
         # perform validation & save checkpoints per epoch
         # validation statistics per epoch (buffer for visualization)
         print('=' * 60)
         print('Perform Evaluation on LFW, and Save Checkpoints...')
         # Val score for LFW
-        #accuracy_lfw, best_threshold_lfw, roc_curve_lfw = perform_val(
-        #                    MULTI_GPU, DEVICE, EMBEDDING_SIZE, BATCH_SIZE,
-        #                    BACKBONE, lfw, lfw_issame)
         accuracy_lfw, best_threshold_lfw, roc_curve_lfw = perform_lfw_val(
                             MULTI_GPU, DEVICE, EMBEDDING_SIZE, BATCH_SIZE,
                             BACKBONE, lfw_pairs, lfw_issame)

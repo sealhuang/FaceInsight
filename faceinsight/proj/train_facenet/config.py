@@ -19,15 +19,15 @@ configurations = {
         # the root to resume training from a saved checkpoint
         HEAD_RESUME_ROOT = './',
 
-        # ['shufflenet_v2_x0_5', 'shufflenet_v2_1_0']
+        # ['shufflenet_v2_x0_5', 'shufflenet_v2_1_0', 'mobilefacenet']
         BACKBONE_NAME = 'shufflenet_v2_x1_0',
         # HEAD: ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
         HEAD_NAME = 'ArcFace',
         # support: ['Focal', 'Softmax']
-        LOSS_NAME = 'Softmax',
+        LOSS_NAME = 'Focal',
 
         # support: [112, 112] and [224, 224]
-        INPUT_SIZE = [224, 224],
+        INPUT_SIZE = [112, 112],
         # for normalize inputs to [-1, 1]
         RGB_MEAN = [0.5, 0.5, 0.5],
         RGB_STD = [0.5, 0.5, 0.5],
@@ -41,10 +41,10 @@ configurations = {
         # total epoch number (use the firt 1/25 epochs to warm up)
         NUM_EPOCH = 125,
         # do not apply to batch_norm parameters
-        WEIGHT_DECAY = 1e-5,
+        WEIGHT_DECAY = 5e-5,
         MOMENTUM = 0.9,
         # batch stages to decay learning rate
-        STAGES = [21, 41, 61, 81],
+        STAGES = [16, 41, 61],
 
         DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
         # flag to use multiple GPUs; if you choose to train with single GPU,

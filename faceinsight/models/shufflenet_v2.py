@@ -156,10 +156,13 @@ class ShuffleNetV2(nn.Module):
         #self.maxpool2 = nn.Sequential(nn.MaxPool2d(int(input_size/32)))
 
         # building classifier
-        self.classifier = nn.Sequential(nn.Linear(self.stage_out_channels[-1],
+        #self.classifier = nn.Sequential(nn.Linear(self.stage_out_channels[-1],
+        #                                          n_class,
+        #                                          bias=False))
+        self.classifier = nn.Sequential(nn.Linear(16*1024,
                                                   n_class,
                                                   bias=False))
-        self.bn = nn.BatchNorm1d(nclass)
+        self.bn = nn.BatchNorm1d(n_class)
 
     def forward(self, x):
         x = self.conv1(x)

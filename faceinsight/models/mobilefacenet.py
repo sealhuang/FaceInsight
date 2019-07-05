@@ -9,7 +9,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class Flatten(Module):
+class Flatten(nn.Module):
     def forward(self, input):
         return input.view(input.size(0), -1)
 
@@ -18,32 +18,32 @@ def l2_norm(input,axis=1):
     output = torch.div(input, norm)
     return output
 
-class Conv_block(Module):
+class Conv_block(nn.Module):
     def __init__(self, in_c, out_c, kernel=(1, 1), stride=(1, 1),
                  padding=(0, 0), groups=1):
         super(Conv_block, self).__init__()
         self.conv = nn.Conv2d(in_c, out_channels=out_c, kernel_size=kernel,
                               groups=groups, stride=stride, padding=padding,
                               bias=False)
-        self.bn = BatchNorm2d(out_c)
-        self.prelu = PReLU(out_c)
+        self.bn = nn.BatchNorm2d(out_c)
+        self.prelu = nn.PReLU(out_c)
     def forward(self, x):
         x = self.conv(x)
         x = self.bn(x)
         x = self.prelu(x)
         return x
 
-class Linear_block(Module):
+class Linear_block(nn.Module):
     def __init__(self, in_c, out_c, kernel=(1, 1), stride=(1, 1), padding=(0, 0), groups=1):
         super(Linear_block, self).__init__()
-        self.conv = Conv2d(in_c, out_channels=out_c, kernel_size=kernel, groups=groups, stride=stride, padding=padding, bias=False)
-        self.bn = BatchNorm2d(out_c)
+        self.conv = nn.Conv2d(in_c, out_channels=out_c, kernel_size=kernel, groups=groups, stride=stride, padding=padding, bias=False)
+        self.bn = nn.BatchNorm2d(out_c)
     def forward(self, x):
         x = self.conv(x)
         x = self.bn(x)
         return x
 
-class Depth_Wise(Module):
+class Depth_Wise(nn.Module):
      def __init__(self, in_c, out_c, residual = False, kernel=(3, 3), stride=(2, 2), padding=(1, 1), groups=1):
         super(Depth_Wise, self).__init__()
         self.conv = Conv_block(in_c, out_c=groups, kernel=(1, 1), padding=(0, 0), stride=(1, 1))
@@ -62,17 +62,17 @@ class Depth_Wise(Module):
             output = x
         return output
 
-class Residual(Module):
+class Residual(nn.Module):
     def __init__(self, c, num_block, groups, kernel=(3, 3), stride=(1, 1), padding=(1, 1)):
         super(Residual, self).__init__()
         modules = []
         for _ in range(num_block):
             modules.append(Depth_Wise(c, c, residual=True, kernel=kernel, padding=padding, stride=stride, groups=groups))
-        self.model = Sequential(*modules)
+        self.model = nn.Sequential(*modules)
     def forward(self, x):
         return self.model(x)
 
-class MobileFaceNet(Module):
+class MobileFaceNet(nn.Module):
     def __init__(self, embedding_size):
         super(MobileFaceNet, self).__init__()
         self.conv1 = Conv_block(3, 64, kernel=(3, 3), stride=(2, 2),
@@ -96,8 +96,8 @@ class MobileFaceNet(Module):
         self.conv_6_dw = Linear_block(512, 512, groups=512, kernel=(7,7),
                                       stride=(1, 1), padding=(0, 0))
         self.conv_6_flatten = Flatten()
-        self.linear = Linear(512, embedding_size, bias=False)
-        self.bn = BatchNorm1d(embedding_size)
+        self.linear = nn.Linear(512, embedding_size, bias=False)
+        self.bn = nn.BatchNorm1d(embedding_size)
     
     def forward(self, x):
         out = self.conv1(x)
