@@ -68,7 +68,7 @@ class backbone_wrapper(nn.Module):
         else:
             pass
         
-        if backbone_name.stratswith('shufflenet'):
+        if backbone_name.startswith('shufflenet'):
             # change the final fc as no-bias
             in_dims = self.base_model.fc.in_features
             self.base_model.fc = nn.Linear(in_dims, embedding_size, bias=False)

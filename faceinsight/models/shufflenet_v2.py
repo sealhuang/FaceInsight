@@ -55,7 +55,8 @@ class InvertedResidual(nn.Module):
                 nn.BatchNorm2d(oup_inc),
                 nn.ReLU(inplace=True),
                 # dw
-                nn.Conv2d(oup_inc, oup_inc, 3, stride, 1, groups=oup_inc, bias=False),
+                nn.Conv2d(oup_inc, oup_inc, 3, stride, 1, groups=oup_inc,
+                          bias=False),
                 nn.BatchNorm2d(oup_inc),
                 # pw-linear
                 nn.Conv2d(oup_inc, oup_inc, 1, 1, 0, bias=False),
@@ -79,7 +80,8 @@ class InvertedResidual(nn.Module):
                 nn.BatchNorm2d(oup_inc),
                 nn.ReLU(inplace=True),
                 # dw
-                nn.Conv2d(oup_inc, oup_inc, 3, stride, 1, groups=oup_inc, bias=False),
+                nn.Conv2d(oup_inc, oup_inc, 3, stride, 1, groups=oup_inc,
+                          bias=False),
                 nn.BatchNorm2d(oup_inc),
                 # pw-linear
                 nn.Conv2d(oup_inc, oup_inc, 1, 1, 0, bias=False),
@@ -101,6 +103,19 @@ class InvertedResidual(nn.Module):
             out = self._concat(self.banch1(x), self.banch2(x))
 
         return channel_shuffle(out, 2)
+
+class global_weight(nn.Module):
+    def __init__(self, in_c, out_c, kernel=(1, 1), stride=(1, 1),
+                 padding=(0, 0), groups=1):
+        super(global_weight, self).__init__()
+        self.conv - nn.Conv2d(in_c, out_channels=out_c, kernel_size=kernel,
+                              groups=groups, stride=stride, padding=padding,
+                              bias=False)
+        self.bn = nn.BatchNorm2d(out_c)
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.bn(x)
+        return x
 
 
 class ShuffleNetV2(nn.Module):
@@ -154,12 +169,14 @@ class ShuffleNetV2(nn.Module):
         self.conv_last = conv_1x1_bn(input_channel, self.stage_out_channels[-1])
         #self.globalpool = nn.Sequential(nn.AvgPool2d(int(input_size/32)))
         #self.maxpool2 = nn.Sequential(nn.MaxPool2d(int(input_size/32)))
+        self.global_weight = global_weight(self.stage_out_channels[-1],
+                                           self.stage_out_channels[-1],
+                                           kernel=(7, 7),
+                                           stride=(1, 1),
+                                           groups=self.stage_out_channels[-1])
 
         # building classifier
-        #self.classifier = nn.Sequential(nn.Linear(self.stage_out_channels[-1],
-        #                                          n_class,
-        #                                          bias=False))
-        self.classifier = nn.Sequential(nn.Linear(16*1024,
+        self.classifier = nn.Sequential(nn.Linear(self.stage_out_channels[-1],
                                                   n_class,
                                                   bias=False))
         self.bn = nn.BatchNorm1d(n_class)
@@ -171,9 +188,8 @@ class ShuffleNetV2(nn.Module):
         x = self.conv_last(x)
         #x = self.globalpool(x)
         #x = self.maxpool2(x)
-        x = x.view(x.size(0), -1)
-        #x = x.view(-1, self.stage_out_channels[-1])
-        x = self.classifier(x)
+        x = self.global_weight(x)
+        x = x.view(-1, self.stage_out_channels[-1])
         x = self.bn(x)
         return x
 
