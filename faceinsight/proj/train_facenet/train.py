@@ -8,12 +8,10 @@ import torch.nn as nn
 import torch.optim as optim
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
-import torchvision.models as models
 import torchvision.utils as vutils
 from tensorboardX import SummaryWriter
 
 from faceinsight.models.shufflenet_v2 import ShuffleNetV2
-from faceinsight.models.mobilefacenet import MobileFaceNet
 from faceinsight.head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
 from faceinsight.loss.focal import FocalLoss
 from faceinsight.util.utils import get_time
@@ -24,96 +22,6 @@ from faceinsight.io.pubdataloader import get_lfw_val_pair
 from faceinsight.util.utils import perform_lfw_val, buffer_val
 
 from config import configurations
-
-
-def separate_bn_paras(modules):
-    if not isinstance(modules, list):
-        modules = [*modules.modules()]
-    paras_only_bn = []
-    paras_wo_bn = []
-    for layer in modules:
-        #print(layer.__class__)
-        if 'shufflenet_wrapper' in str(layer.__class__):
-            continue
-        if 'model' in str(layer.__class__):
-            continue
-        if 'container' in str(layer.__class__):
-            continue
-        else:
-            if 'batchnorm' in str(layer.__class__):
-                paras_only_bn.extend([*layer.parameters()])
-            else:
-                paras_wo_bn.extend([*layer.parameters()])
-
-    return paras_only_bn, paras_wo_bn
-
-class backbone_wrapper(nn.Module):
-    def __init__(self, backbone_name, embedding_size):
-        super(backbone_wrapper, self).__init__()
-
-        if backbone_name=='shufflenet_v2_x0_5':
-            self.base_model = models.shufflenet_v2_x0_5(pretrained=False,
-                                                    num_classes=embedding_size)
-        elif backbone_name=='shufflenet_v2_x1_0':
-            self.base_model = models.shufflenet_v2_x1_0(pretrained=False,
-                                                    num_classes=embedding_size)
-        elif backbone_name=='shufflenet_v2_x1_5':
-            self.base_model = models.shufflenet_v2_x1_5(pretrained=False,
-                                                    num_classes=embedding_size)
-        elif backbone_name=='shufflenet_v2_x2_0':
-            self.base_model = models.shufflenet_v2_x2_0(pretrained=False,
-                                                    num_classes=embedding_size)
-        elif backbone_name=='mobilefacenet':
-            self.base_model = MobileFaceNet(embedding_size)
-        else:
-            pass
-        
-        if backbone_name.startswith('shufflenet'):
-            # change the final fc as no-bias
-            in_dims = self.base_model.fc.in_features
-            self.base_model.fc = nn.Linear(in_dims, embedding_size, bias=False)
-
-            self.bn = nn.BatchNorm1d(embedding_size)
-
-    def forward(self, x):
-        x = self.base_model(x)
-        #x = self.bn(x)
-
-        return x
-
-class shufflenet_wrapper1(nn.Module):
-    def __init__(self, backbone_name, embedding_size):
-        super(shufflenet_wrapper1, self).__init__()
-
-        if backbone_name=='shufflenet_v2_x0_5':
-            self.base_model = ShuffleNetV2(n_class=embedding_size,
-                                           input_size=224,
-                                           width_mult=0.5)
-        elif backbone_name=='shufflenet_v2_x1_0':
-            self.base_model = ShuffleNetV2(n_class=embedding_size,
-                                           input_size=224,
-                                           width_mult=1.0)
-        elif backbone_name=='shufflenet_v2_x1_5':
-            self.base_model = ShuffleNetV2(n_class=embedding_size,
-                                           input_size=224,
-                                           width_mult=1.5)
-        elif backbone_name=='shufflenet_v2_x2_0':
-            self.base_model = ShuffleNetV2(n_class=embedding_size,
-                                           input_size=224,
-                                           width_mult=2.0)
-        else:
-            pass
-        # change the final fc as no-bias
-        #in_dims = self.base_model.fc.in_features
-        #self.base_model.fc = nn.Linear(in_dims, embedding_size, bias=False)
-
-        self.bn = nn.BatchNorm1d(embedding_size)
-
-    def forward(self, x):
-        x = self.base_model(x)
-        #x = self.bn(x)
-
-        return x
 
 
 if __name__ == '__main__':
@@ -177,7 +85,7 @@ if __name__ == '__main__':
     writer = SummaryWriter(LOG_ROOT)
 
     train_transform = transforms.Compose([
-                        transforms.Resize(128),
+                        transforms.Resize(256),
                         transforms.RandomCrop([INPUT_SIZE[0], INPUT_SIZE[1]]),
                         transforms.RandomHorizontalFlip(),
                         transforms.ToTensor(),
@@ -209,8 +117,25 @@ if __name__ == '__main__':
     lfw_pairs, lfw_issame = get_lfw_val_pair(lfw_pair_file, lfw_img_dir)
 
     # ======= model & loss & optimizer =======#
-    BACKBONE = backbone_wrapper(BACKBONE_NAME, EMBEDDING_SIZE)
-    #BACKBONE = shufflenet_wrapper1(BACKBONE_NAME, EMBEDDING_SIZE)
+    if BACKBONE_NAME=='shufflenet_v2_x0_5':
+        BACKBONE = ShuffleNetV2(n_class=EMBEDDING_SIZE,
+                                input_size=224,
+                                width_mult=0.5)
+    elif BACKBONE_NAME=='shufflenet_v2_x1_0':
+        BACKBONE = ShuffleNetV2(n_class=EMBEDDING_SIZE,
+                                input_size=224,
+                                width_mult=1.0)
+    elif BACKBONE_NAME=='shufflenet_v2_x1_5':
+        BACKBONE = ShuffleNetV2(n_class=EMBEDDING_SIZE,
+                                input_size=224,
+                                width_mult=1.5)
+    elif BACKBONE_NAME=='shufflenet_v2_x2_0':
+        BACKBONE = ShuffleNetV2(n_class=EMBEDDING_SIZE,
+                                input_size=224,
+                                width_mult=2.0)
+    else:
+        pass
+
     print('=' * 60)
     print(BACKBONE)
     print('{} Backbone Generated'.format(BACKBONE_NAME))
@@ -242,17 +167,31 @@ if __name__ == '__main__':
     print('{} Loss Generated'.format(LOSS_NAME))
     print('=' * 60)
 
+    # define optimizer
+    ignored_params = list(map(id, BACKBONE.classifier.parameters()))
+    ignored_params += list(map(id, HEAD.weight))
+    backbone_params_only_bn = []
+    for m in BACKBONE.modules():
+        if isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm1d):
+            ignored_params += list(map(id, m.parameters()))
+            backbone_params_only_bn += m.parameters()
+        else:
+            pass
+    backbone_params_wo_bn = filter(lambda p: id(p) not in ignored_params,
+                                   BACKBONE.parameters())
     # separate batch_norm parameters from others; do not do weight decay for
     # batch_norm parameters to improve the generalizability
-    backbone_paras_only_bn, backbone_paras_wo_bn = separate_bn_paras(BACKBONE)
-    #_, head_paras_wo_bn = separate_bn_paras(HEAD)
-    OPTIMIZER = optim.SGD([{'params': backbone_paras_wo_bn,
+    #backbone_paras_only_bn, backbone_paras_wo_bn = separate_bn_paras(BACKBONE)
+    OPTIMIZER = optim.SGD([{'params': backbone_params_wo_bn,
+                            'weight_decay': WEIGHT_DECAY*0.1},
+                           {'params': backbone_params_only_bn,
+                            'weight_decay': WEIGHT_DECAY*1e-2},
+                           {'params': BACKBONE.classifier.parameters(),
                             'weight_decay': WEIGHT_DECAY},
-                           {'params': HEAD.parameters(),
+                           {'params': HEAD.weight,
                             'weight_decay': WEIGHT_DECAY},
-                           {'params': backbone_paras_only_bn},
                           ],
-                          lr=LR, momentum=MOMENTUM)
+                          lr=LR, momentum=MOMENTUM, nesterov=False)
     print('=' * 60)
     print(OPTIMIZER)
     print('Optimizer Generated')
@@ -358,9 +297,12 @@ if __name__ == '__main__':
         # plot model parameter hist
         for name, param in BACKBONE.named_parameters():
             writer.add_histogram(name, param.clone().cpu().data.numpy(),epoch+1)
-        backbone_params = BACKBONE.state_dict()
-        x = vutils.make_grid(backbone_params['base_model.conv1.conv.weight'].clone().cpu().data, normalize=True, scale_each=True)
-        #writer.add_image('conv1', x, epoch+1)
+        for name, param in HEAD.named_parameters():
+            writer.add_histogram(name, param.clone().cpu().data.numpy(),epoch+1)
+        bb_params = BACKBONE.state_dict()
+        x = vutils.make_grid(bb_params['conv1.0.weight'].clone().cpu().data,
+                             normalize=True, scale_each=True)
+        writer.add_image('conv1', x, epoch+1)
 
         # perform validation & save checkpoints per epoch
         # validation statistics per epoch (buffer for visualization)

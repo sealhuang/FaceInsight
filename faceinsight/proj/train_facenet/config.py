@@ -24,7 +24,7 @@ configurations = {
         # HEAD: ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
         HEAD_NAME = 'ArcFace',
         # support: ['Focal', 'Softmax']
-        LOSS_NAME = 'Focal',
+        LOSS_NAME = 'Softmax',
 
         # support: [112, 112] and [224, 224]
         INPUT_SIZE = [224, 224],
@@ -32,8 +32,8 @@ configurations = {
         RGB_MEAN = [0.5, 0.5, 0.5],
         RGB_STD = [0.5, 0.5, 0.5],
         # feature dimension
-        EMBEDDING_SIZE = 512,
-        BATCH_SIZE = 256,
+        EMBEDDING_SIZE = 256,
+        BATCH_SIZE = 384,
         # whether drop the last batch to ensure consistent batch_norm statistics
         DROP_LAST = True,
         # initial LR
@@ -41,7 +41,7 @@ configurations = {
         # total epoch number (use the firt 1/25 epochs to warm up)
         NUM_EPOCH = 125,
         # do not apply to batch_norm parameters
-        WEIGHT_DECAY = 5e-5,
+        WEIGHT_DECAY = 1e-5,
         MOMENTUM = 0.9,
         # batch stages to decay learning rate
         STAGES = [16, 41, 61],
