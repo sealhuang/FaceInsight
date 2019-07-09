@@ -32,12 +32,12 @@ configurations = {
         RGB_MEAN = [0.5, 0.5, 0.5],
         RGB_STD = [0.5, 0.5, 0.5],
         # feature dimension
-        EMBEDDING_SIZE = 256,
-        BATCH_SIZE = 384,
+        EMBEDDING_SIZE = 512,
+        BATCH_SIZE = 128,
         # whether drop the last batch to ensure consistent batch_norm statistics
         DROP_LAST = True,
         # initial LR
-        LR = 0.1,
+        LR = 1e-2,
         # total epoch number (use the firt 1/25 epochs to warm up)
         NUM_EPOCH = 125,
         # do not apply to batch_norm parameters

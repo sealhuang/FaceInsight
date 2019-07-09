@@ -183,15 +183,15 @@ if __name__ == '__main__':
     # batch_norm parameters to improve the generalizability
     #backbone_paras_only_bn, backbone_paras_wo_bn = separate_bn_paras(BACKBONE)
     OPTIMIZER = optim.SGD([{'params': backbone_params_wo_bn,
-                            'weight_decay': WEIGHT_DECAY*0.1},
+                            'weight_decay': WEIGHT_DECAY*1e-1},
                            {'params': backbone_params_only_bn,
-                            'weight_decay': WEIGHT_DECAY*1e-2},
+                            'weight_decay': 0.0},
                            {'params': BACKBONE.classifier.parameters(),
                             'weight_decay': WEIGHT_DECAY},
                            {'params': HEAD.weight,
                             'weight_decay': WEIGHT_DECAY},
                           ],
-                          lr=LR, momentum=MOMENTUM, nesterov=False)
+                          lr=LR, momentum=MOMENTUM, nesterov=True)
     print('=' * 60)
     print(OPTIMIZER)
     print('Optimizer Generated')
