@@ -223,7 +223,8 @@ if __name__ == '__main__':
     DISP_FREQ = len(train_loader) // 100  
 
     # use the first 1/25 epochs to warm up
-    NUM_EPOCH_WARM_UP = NUM_EPOCH // 25
+    #NUM_EPOCH_WARM_UP = NUM_EPOCH // 25
+    NUM_EPOCH_WARM_UP = 0
     NUM_BATCH_WARM_UP = len(train_loader) * NUM_EPOCH_WARM_UP
 
     # start training

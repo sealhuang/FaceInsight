@@ -39,7 +39,7 @@ configurations = {
         # initial LR
         LR = 1e-2,
         # total epoch number (use the firt 1/25 epochs to warm up)
-        NUM_EPOCH = 125,
+        NUM_EPOCH = 100,
         # do not apply to batch_norm parameters
         WEIGHT_DECAY = 1e-5,
         MOMENTUM = 0.9,
