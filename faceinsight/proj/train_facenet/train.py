@@ -183,15 +183,15 @@ if __name__ == '__main__':
     # batch_norm parameters to improve the generalizability
     #backbone_paras_only_bn, backbone_paras_wo_bn = separate_bn_paras(BACKBONE)
     OPTIMIZER = optim.SGD([{'params': backbone_params_wo_bn,
-                            'weight_decay': WEIGHT_DECAY*1e-1},
+                            'weight_decay': WEIGHT_DECAY},
                            {'params': backbone_params_only_bn,
                             'weight_decay': 0.0},
                            {'params': BACKBONE.classifier.parameters(),
-                            'weight_decay': WEIGHT_DECAY},
+                            'weight_decay': WEIGHT_DECAY*1e-1},
                            {'params': HEAD.weight,
-                            'weight_decay': WEIGHT_DECAY},
+                            'weight_decay': WEIGHT_DECAY*1e-2},
                           ],
-                          lr=LR, momentum=MOMENTUM, nesterov=True)
+                          lr=LR, momentum=MOMENTUM, nesterov=False)
     print('=' * 60)
     print(OPTIMIZER)
     print('Optimizer Generated')
@@ -230,7 +230,7 @@ if __name__ == '__main__':
     # start training
     batch = 0
     for epoch in range(NUM_EPOCH):
-        # adjust LR for each training stage after warm up, you can also
+       # adjust LR for each training stage after warm up, you can also
         # choose to adjust LR manually (with slight modification) once
         # plaueau observed
         for stage_thresh in STAGES:
@@ -295,7 +295,7 @@ if __name__ == '__main__':
                 epoch+1, NUM_EPOCH, loss=losses, top1=top1, top5=top5))
         print('=' * 60)
 
-        # plot model parameter hist
+        ## plot model parameter hist
         for name, param in BACKBONE.named_parameters():
             writer.add_histogram(name, param.clone().cpu().data.numpy(),epoch+1)
         for name, param in HEAD.named_parameters():
@@ -304,6 +304,9 @@ if __name__ == '__main__':
         x = vutils.make_grid(bb_params['conv1.0.weight'].clone().cpu().data,
                              normalize=True, scale_each=True)
         writer.add_image('conv1', x, epoch+1)
+        x = vutils.make_grid(bb_params['global_weight.conv.weight'].clone().cpu().data,
+                             normalize=True, scale_each=True)
+        writer.add_image('global_weight', x, epoch+1)
 
         # perform validation & save checkpoints per epoch
         # validation statistics per epoch (buffer for visualization)

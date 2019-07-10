@@ -119,7 +119,7 @@ class global_weight(nn.Module):
 
 
 class ShuffleNetV2(nn.Module):
-    def __init__(self, n_class=1000, input_size=224, width_mult=1.):
+    def __init__(self, n_class=512, input_size=224, width_mult=1.):
         super(ShuffleNetV2, self).__init__()
         
         assert input_size % 32 == 0
