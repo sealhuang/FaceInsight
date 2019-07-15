@@ -135,7 +135,7 @@ if __name__ == '__main__':
                                 input_size=224,
                                 width_mult=2.0)
     elif BACKBONE_NAME=='mobilefacenet':
-        BACKBONE = MObileFaceNet(EMBEDDING_SIZE)
+        BACKBONE = MobileFaceNet(EMBEDDING_SIZE)
     else:
         pass
 
@@ -191,10 +191,12 @@ if __name__ == '__main__':
                             'weight_decay': WEIGHT_DECAY},
                            {'params': backbone_params_only_bn,
                             'weight_decay': 0.0},
-                           {'params': BACKBONE.classifier.parameters(),
+                           #{'params': BACKBONE.classifier.parameters(),
+                           # 'weight_decay': WEIGHT_DECAY*1e-1},
+                           {'params': BACKBONE.linear.parameters(),
                             'weight_decay': WEIGHT_DECAY*1e-1},
                            {'params': HEAD.weight,
-                            'weight_decay': WEIGHT_DECAY*1e-2},
+                            'weight_decay': WEIGHT_DECAY*1e-1},
                           ],
                           lr=LR, momentum=MOMENTUM, nesterov=False)
     print('=' * 60)

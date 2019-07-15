@@ -34,9 +34,12 @@ class Conv_block(nn.Module):
         return x
 
 class Linear_block(nn.Module):
-    def __init__(self, in_c, out_c, kernel=(1, 1), stride=(1, 1), padding=(0, 0), groups=1):
+    def __init__(self, in_c, out_c, kernel=(1, 1), stride=(1, 1),
+                 padding=(0, 0), groups=1):
         super(Linear_block, self).__init__()
-        self.conv = nn.Conv2d(in_c, out_channels=out_c, kernel_size=kernel, groups=groups, stride=stride, padding=padding, bias=False)
+        self.conv = nn.Conv2d(in_c, out_channels=out_c, kernel_size=kernel,
+                              groups=groups, stride=stride, padding=padding,
+                              bias=False)
         self.bn = nn.BatchNorm2d(out_c)
     def forward(self, x):
         x = self.conv(x)
@@ -44,11 +47,15 @@ class Linear_block(nn.Module):
         return x
 
 class Depth_Wise(nn.Module):
-     def __init__(self, in_c, out_c, residual = False, kernel=(3, 3), stride=(2, 2), padding=(1, 1), groups=1):
+     def __init__(self, in_c, out_c, residual=False, kernel=(3, 3),
+                  stride=(2, 2), padding=(1, 1), groups=1):
         super(Depth_Wise, self).__init__()
-        self.conv = Conv_block(in_c, out_c=groups, kernel=(1, 1), padding=(0, 0), stride=(1, 1))
-        self.conv_dw = Conv_block(groups, groups, groups=groups, kernel=kernel, padding=padding, stride=stride)
-        self.project = Linear_block(groups, out_c, kernel=(1, 1), padding=(0, 0), stride=(1, 1))
+        self.conv = Conv_block(in_c, out_c=groups, kernel=(1, 1),
+                               padding=(0, 0), stride=(1, 1))
+        self.conv_dw = Conv_block(groups, groups, groups=groups, kernel=kernel,
+                                  padding=padding, stride=stride)
+        self.project = Linear_block(groups, out_c, kernel=(1, 1),
+                                    padding=(0, 0), stride=(1, 1))
         self.residual = residual
      def forward(self, x):
         if self.residual:
@@ -63,11 +70,13 @@ class Depth_Wise(nn.Module):
         return output
 
 class Residual(nn.Module):
-    def __init__(self, c, num_block, groups, kernel=(3, 3), stride=(1, 1), padding=(1, 1)):
+    def __init__(self, c, num_block, groups, kernel=(3, 3), stride=(1, 1),
+                 padding=(1, 1)):
         super(Residual, self).__init__()
         modules = []
         for _ in range(num_block):
-            modules.append(Depth_Wise(c, c, residual=True, kernel=kernel, padding=padding, stride=stride, groups=groups))
+            modules.append(Depth_Wise(c, c, residual=True, kernel=kernel,
+                           padding=padding, stride=stride, groups=groups))
         self.model = nn.Sequential(*modules)
     def forward(self, x):
         return self.model(x)
@@ -91,7 +100,9 @@ class MobileFaceNet(nn.Module):
                                   padding=(1, 1), groups=512)
         self.conv_5 = Residual(128, num_block=2, groups=256, kernel=(3, 3),
                                stride=(1, 1), padding=(1, 1))
-        self.conv_6_sep = Conv_block(128, 512, kernel=(1, 1), stride=(1, 1),
+        #self.conv_6_sep = Conv_block(128, 512, kernel=(1, 1), stride=(1, 1),
+        #                             padding=(0, 0))
+        self.conv_6_sep = Conv_block(128, 512, kernel=(1, 1), stride=(2, 2),
                                      padding=(0, 0))
         self.conv_6_dw = Linear_block(512, 512, groups=512, kernel=(7,7),
                                       stride=(1, 1), padding=(0, 0))
