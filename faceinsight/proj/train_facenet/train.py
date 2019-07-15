@@ -12,6 +12,7 @@ import torchvision.utils as vutils
 from tensorboardX import SummaryWriter
 
 from faceinsight.models.shufflenet_v2 import ShuffleNetV2
+from faceinsight.models.mobilefacenet import MobileFaceNet
 from faceinsight.head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
 from faceinsight.loss.focal import FocalLoss
 from faceinsight.util.utils import get_time
@@ -133,6 +134,8 @@ if __name__ == '__main__':
         BACKBONE = ShuffleNetV2(n_class=EMBEDDING_SIZE,
                                 input_size=224,
                                 width_mult=2.0)
+    elif BACKBONE_NAME=='mobilefacenet':
+        BACKBONE = MObileFaceNet(EMBEDDING_SIZE)
     else:
         pass
 
@@ -168,7 +171,12 @@ if __name__ == '__main__':
     print('=' * 60)
 
     # define optimizer
-    ignored_params = list(map(id, BACKBONE.classifier.parameters()))
+    # separate batch_norm parameters from others; do not do weight decay for
+    # batch_norm parameters to improve the generalizability
+    # For ShuffleNet
+    #ignored_params = list(map(id, BACKBONE.classifier.parameters()))
+    # For MobileFaceNet
+    ignored_params = list(map(id, BACKBONE.linear.parameters()))
     ignored_params += list(map(id, HEAD.weight))
     backbone_params_only_bn = []
     for m in BACKBONE.modules():
@@ -179,9 +187,6 @@ if __name__ == '__main__':
             pass
     backbone_params_wo_bn = filter(lambda p: id(p) not in ignored_params,
                                    BACKBONE.parameters())
-    # separate batch_norm parameters from others; do not do weight decay for
-    # batch_norm parameters to improve the generalizability
-    #backbone_paras_only_bn, backbone_paras_wo_bn = separate_bn_paras(BACKBONE)
     OPTIMIZER = optim.SGD([{'params': backbone_params_wo_bn,
                             'weight_decay': WEIGHT_DECAY},
                            {'params': backbone_params_only_bn,
@@ -301,10 +306,18 @@ if __name__ == '__main__':
         for name, param in HEAD.named_parameters():
             writer.add_histogram(name, param.clone().cpu().data.numpy(),epoch+1)
         bb_params = BACKBONE.state_dict()
-        x = vutils.make_grid(bb_params['conv1.0.weight'].clone().cpu().data,
+        # for shufflenet
+        #x = vutils.make_grid(bb_params['conv1.0.weight'].clone().cpu().data,
+        #                     normalize=True, scale_each=True)
+        #writer.add_image('conv1', x, epoch+1)
+        #x = vutils.make_grid(bb_params['global_weight.conv.weight'].clone().cpu().data,
+        #                     normalize=True, scale_each=True)
+        #writer.add_image('global_weight', x, epoch+1)
+        # for mobilefacenet
+        x = vutils.make_grid(bb_params['conv1.conv.weight'].clone().cpu().data,
                              normalize=True, scale_each=True)
         writer.add_image('conv1', x, epoch+1)
-        x = vutils.make_grid(bb_params['global_weight.conv.weight'].clone().cpu().data,
+        x = vutils.make_grid(bb_params['conv_6_dw.conv.weight'].clone().cpu().data,
                              normalize=True, scale_each=True)
         writer.add_image('global_weight', x, epoch+1)
 

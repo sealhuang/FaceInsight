@@ -242,6 +242,27 @@ def make_multilabel_dataset(csv_info, img_dir, target_idxs):
  
     return imgs, targets
 
+def make_multilabel_reg_dataset(csv_info, img_dir, target_idxs):
+    imgs = []
+    targets = []
+
+    # get image list
+    for line in csv_info:
+        img = os.path.join(img_dir, line[-1])
+        if not os.path.exists(img):
+            print('Non-exist image: %s'%(img))
+            continue
+        else:
+            imgs.append(img)
+            tmp = [float(line[i]) for i in target_idxs]
+            targets.append(tmp)
+    targets = np.array(targets)
+
+    #print('%s images and %s targets'%(len(imgs), len(targets)))
+    assert len(imgs)==len(targets)
+ 
+    return imgs, targets
+
 class PF16MultiLabelDataset(Dataset):
     """16PF data loader.
     
@@ -300,6 +321,85 @@ class PF16MultiLabelDataset(Dataset):
 
         Returns:
             tuple: (image, target) where target is factor value of MBTI factor.
+        """
+        img_path, target = self.imgs[idx], self.targets[idx]
+        # load face image
+        with open(img_path, 'rb') as f:
+            img = Image.open(f).convert('RGB')
+        if self.transform is not None:
+            img = self.transform(img)
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+
+        return img, target
+
+    def __len__(self):
+        return len(self.imgs)
+
+    def __repr__(self):
+        fmt_str = 'Dataset ' + self.__class__.__name__ + '\n'
+        fmt_str += '    Number of datapoints: {}\n'.format(self.__len__())
+        fmt_str += '    Face dir location : {}\n'.format(self.face_dir)
+        tmp = '    Transforms (if any): '
+        fmt_str += '{0}{1}\n'.format(tmp, self.transform.__repr__().replace('\n', '\n' + ' ' * len(tmp)))
+        return fmt_str
+
+class PF16MultiLabelRegDataset(Dataset):
+    """16PF data loader.
+    
+    Args:
+        csv_file (string): 16PF data file.
+        img_dir (string): Directory path of face images.
+        factor_names (list of string): target factor names.
+        gender_filter (string): 'male', 'female', or None for default.
+        transform (callable, optional): A function/transform that takes in
+            a sample and returns a transformed version.
+            E.g. ``transforms.RandomCrop`` for images.
+        target_transform (calllable, optional): A function/transform that takes
+            in the target and transforms it.
+
+    """
+    def __init__(self, csv_file, img_dir, factor_names,
+                 gender_filter=None, transform=None, target_transform=None):
+        # read csv info and get dataset
+        csv_info = open(csv_file).readlines()
+        csv_info = [line.strip().split(',') for line in csv_info]
+
+        # check the factor availablity
+        header = csv_info.pop(0)
+        target_idxs = []
+        for n in factor_names:
+            try:
+                target_idxs.append(header.index(n))
+            except:
+                print('Invalid factor name.')
+                raise
+
+        # gender filter
+        if gender_filter:
+            if gender_filter not in ['male', 'female']:
+                raise(RuntimeError('Invalid gender_filter argument.'))
+            csv_info = [line for line in csv_info if line[1]==gender_filter]
+        imgs, targets = make_multilabel_reg_dataset(csv_info, img_dir,
+                                                    target_idxs)
+        if len(imgs)==0:
+            raise(RuntimeError('Found 0 files in face folder.'))
+
+        self.face_dir = os.path.expanduser(img_dir)
+        self.target_factors = factor_names
+        self.imgs = imgs
+        self.targets = targets
+
+        self.transform = transform
+        self.target_transform = target_transform
+
+    def __getitem__(self, idx):
+        """
+        Args:
+            idx (int): Index
+
+        Returns:
+            tuple: (image, target) where target is factor value of 16PF.
         """
         img_path, target = self.imgs[idx], self.targets[idx]
         # load face image
