@@ -230,6 +230,7 @@ if __name__ == '__main__':
     else:
         # single-GPU setting
         BACKBONE = BACKBONE.to(DEVICE)
+    torch.backends.cudnn.benchmark = True
 
     # ======= train & validation & save checkpoint =======#
     # frequency to display training loss & acc
