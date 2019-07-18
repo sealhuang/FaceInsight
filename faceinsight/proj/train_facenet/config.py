@@ -42,7 +42,7 @@ configurations = {
         # total epoch number (use the firt 1/25 epochs to warm up)
         NUM_EPOCH = 60,
         # do not apply to batch_norm parameters
-        WEIGHT_DECAY = 1e-5,
+        WEIGHT_DECAY = 4e-5,
         MOMENTUM = 0.9,
         # batch stages to decay learning rate
         STAGES = [15, 35, 45],

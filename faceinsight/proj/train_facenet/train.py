@@ -96,15 +96,20 @@ if __name__ == '__main__':
     dataset_train = datasets.ImageFolder(train_data_dir, train_transform)
 
     # create a weighted random sampler to process imbalanced data
-    weights = make_weights_for_balanced_classes(dataset_train.imgs,
-                                                len(dataset_train.classes))
-    weights = torch.DoubleTensor(weights)
-    sampler = torch.utils.data.WeightedRandomSampler(weights, len(weights),
-                                                     replacement=False)
-
+    #weights = make_weights_for_balanced_classes(dataset_train.imgs,
+    #                                            len(dataset_train.classes))
+    #weights = torch.DoubleTensor(weights)
+    #sampler = torch.utils.data.WeightedRandomSampler(weights, len(weights),
+    #                                                 replacement=True)
+    #train_loader = torch.utils.data.DataLoader(dataset_train,
+    #                                           batch_size=BATCH_SIZE,
+    #                                           sampler=sampler,
+    #                                           pin_memory=PIN_MEMORY,
+    #                                           num_workers=NUM_WORKERS,
+    #                                           drop_last=DROP_LAST)
     train_loader = torch.utils.data.DataLoader(dataset_train,
                                                batch_size=BATCH_SIZE,
-                                               sampler=sampler,
+                                               shuffle=True,
                                                pin_memory=PIN_MEMORY,
                                                num_workers=NUM_WORKERS,
                                                drop_last=DROP_LAST)
@@ -225,12 +230,13 @@ if __name__ == '__main__':
 
     if MULTI_GPU:
         # multi-GPU setting
+        torch.backends.cudnn.benchmark = True
         BACKBONE = nn.DataParallel(BACKBONE, device_ids=GPU_ID)
         BACKBONE = BACKBONE.to(DEVICE)
     else:
         # single-GPU setting
+        torch.backends.cudnn.benchmark = True
         BACKBONE = BACKBONE.to(DEVICE)
-    torch.backends.cudnn.benchmark = True
 
     # ======= train & validation & save checkpoint =======#
     # frequency to display training loss & acc

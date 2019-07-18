@@ -84,8 +84,8 @@ def hflip_batch(imgs_tensor):
 
 ccrop = transforms.Compose([de_preprocess,
                             transforms.ToPILImage(),
-                            transforms.Resize([128*2, 128*2]),
-                            transforms.CenterCrop([112*2, 112*2]),
+                            transforms.Resize([250, 250]),
+                            transforms.CenterCrop([224, 224]),
                             transforms.ToTensor(),
                             transforms.Normalize([0.5, 0.5, 0.5],
                                                  [0.5, 0.5, 0.5])
