@@ -86,7 +86,7 @@ if __name__ == '__main__':
     writer = SummaryWriter(LOG_ROOT)
 
     train_transform = transforms.Compose([
-                        transforms.Resize(256),
+                        transforms.Resize(250),
                         transforms.RandomCrop([INPUT_SIZE[0], INPUT_SIZE[1]]),
                         transforms.RandomHorizontalFlip(),
                         transforms.ToTensor(),
@@ -99,8 +99,8 @@ if __name__ == '__main__':
     weights = make_weights_for_balanced_classes(dataset_train.imgs,
                                                 len(dataset_train.classes))
     weights = torch.DoubleTensor(weights)
-    sampler = torch.utils.data.sampler.WeightedRandomSampler(weights,
-                                                             len(weights))
+    sampler = torch.utils.data.WeightedRandomSampler(weights, len(weights),
+                                                     replacement=False)
 
     train_loader = torch.utils.data.DataLoader(dataset_train,
                                                batch_size=BATCH_SIZE,
@@ -200,9 +200,9 @@ if __name__ == '__main__':
                            {'params': backbone_params_prelu,
                             'weight_decay': 0.0},
                            {'params': BACKBONE.linear.parameters(),
-                            'weight_decay': WEIGHT_DECAY},
+                            'weight_decay': WEIGHT_DECAY*1e1},
                            {'params': HEAD.weight,
-                            'weight_decay': WEIGHT_DECAY},
+                            'weight_decay': WEIGHT_DECAY*1e1},
                           ],
                           lr=LR, momentum=MOMENTUM, nesterov=False)
     print('=' * 60)

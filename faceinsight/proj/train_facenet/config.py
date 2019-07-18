@@ -33,19 +33,19 @@ configurations = {
         RGB_MEAN = [0.5, 0.5, 0.5],
         RGB_STD = [0.5, 0.5, 0.5],
         # feature dimension
-        EMBEDDING_SIZE = 256,
+        EMBEDDING_SIZE = 512,
         BATCH_SIZE = 64,
         # whether drop the last batch to ensure consistent batch_norm statistics
         DROP_LAST = True,
         # initial LR
         LR = 1e-1,
         # total epoch number (use the firt 1/25 epochs to warm up)
-        NUM_EPOCH = 90,
+        NUM_EPOCH = 60,
         # do not apply to batch_norm parameters
         WEIGHT_DECAY = 1e-5,
         MOMENTUM = 0.9,
         # batch stages to decay learning rate
-        STAGES = [25, 45, 75],
+        STAGES = [15, 35, 45],
 
         DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
         # flag to use multiple GPUs; if you choose to train with single GPU,
