@@ -179,24 +179,30 @@ if __name__ == '__main__':
     ignored_params = list(map(id, BACKBONE.linear.parameters()))
     ignored_params += list(map(id, HEAD.weight))
     backbone_params_only_bn = []
+    backbone_params_prelu = []
     for m in BACKBONE.modules():
         if isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm1d):
             ignored_params += list(map(id, m.parameters()))
             backbone_params_only_bn += m.parameters()
+        elif isinstance(m, nn.PReLU):
+            ignored_params += list(map(id, m.parameters()))
+            backbone_params_prelu += m.parameters()
         else:
             pass
-    backbone_params_wo_bn = filter(lambda p: id(p) not in ignored_params,
-                                   BACKBONE.parameters())
-    OPTIMIZER = optim.SGD([{'params': backbone_params_wo_bn,
+    backbone_params_base = filter(lambda p: id(p) not in ignored_params,
+                                  BACKBONE.parameters())
+    OPTIMIZER = optim.SGD([{'params': backbone_params_base,
                             'weight_decay': WEIGHT_DECAY},
                            {'params': backbone_params_only_bn,
                             'weight_decay': 0.0},
                            #{'params': BACKBONE.classifier.parameters(),
                            # 'weight_decay': WEIGHT_DECAY*1e-1},
+                           {'params': backbone_params_prelu,
+                            'weight_decay': 0.0},
                            {'params': BACKBONE.linear.parameters(),
-                            'weight_decay': WEIGHT_DECAY*1e-1},
+                            'weight_decay': WEIGHT_DECAY},
                            {'params': HEAD.weight,
-                            'weight_decay': WEIGHT_DECAY*1e-1},
+                            'weight_decay': WEIGHT_DECAY},
                           ],
                           lr=LR, momentum=MOMENTUM, nesterov=False)
     print('=' * 60)
