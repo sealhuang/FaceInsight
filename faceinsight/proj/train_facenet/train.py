@@ -199,7 +199,7 @@ if __name__ == '__main__':
     OPTIMIZER = optim.SGD([{'params': backbone_params_base,
                             'weight_decay': WEIGHT_DECAY},
                            {'params': backbone_params_only_bn,
-                            'weight_decay': 0.0},
+                            'weight_decay': WEIGHT_DECAY},
                            #{'params': BACKBONE.classifier.parameters(),
                            # 'weight_decay': WEIGHT_DECAY*1e-1},
                            {'params': backbone_params_prelu,

@@ -13,8 +13,8 @@ class Flatten(nn.Module):
     def forward(self, input):
         return input.view(input.size(0), -1)
 
-def l2_norm(input,axis=1):
-    norm = torch.norm(input,2,axis,True)
+def l2_norm(input, axis=1):
+    norm = torch.norm(input, 2, axis, True)
     output = torch.div(input, norm)
     return output
 
@@ -109,7 +109,15 @@ class MobileFaceNet(nn.Module):
         self.conv_6_flatten = Flatten()
         self.linear = nn.Linear(512, embedding_size, bias=False)
         self.bn = nn.BatchNorm1d(embedding_size)
-    
+
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
+            elif isinstance(m, nn.BatchNorm2d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
+
     def forward(self, x):
         out = self.conv1(x)
 

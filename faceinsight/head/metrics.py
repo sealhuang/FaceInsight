@@ -90,8 +90,8 @@ class ArcFace(nn.Module):
         self.m = m
  
         self.weight = Parameter(torch.FloatTensor(out_features, in_features))
-        #nn.init.xavier_uniform_(self.weight)
-        nn.init.kaiming_uniform_(self.weight)
+        nn.init.xavier_uniform_(self.weight)
+        #nn.init.kaiming_uniform_(self.weight)
       
         self.easy_margin = easy_margin
         self.cos_m = math.cos(m)
