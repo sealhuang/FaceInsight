@@ -96,23 +96,23 @@ if __name__ == '__main__':
     dataset_train = datasets.ImageFolder(train_data_dir, train_transform)
 
     # create a weighted random sampler to process imbalanced data
-    #weights = make_weights_for_balanced_classes(dataset_train.imgs,
-    #                                            len(dataset_train.classes))
-    #weights = torch.DoubleTensor(weights)
-    #sampler = torch.utils.data.WeightedRandomSampler(weights, len(weights),
-    #                                                 replacement=True)
-    #train_loader = torch.utils.data.DataLoader(dataset_train,
-    #                                           batch_size=BATCH_SIZE,
-    #                                           sampler=sampler,
-    #                                           pin_memory=PIN_MEMORY,
-    #                                           num_workers=NUM_WORKERS,
-    #                                           drop_last=DROP_LAST)
+    weights = make_weights_for_balanced_classes(dataset_train.imgs,
+                                                len(dataset_train.classes))
+    weights = torch.DoubleTensor(weights)
+    sampler = torch.utils.data.WeightedRandomSampler(weights, len(weights),
+                                                     replacement=True)
     train_loader = torch.utils.data.DataLoader(dataset_train,
                                                batch_size=BATCH_SIZE,
-                                               shuffle=True,
+                                               sampler=sampler,
                                                pin_memory=PIN_MEMORY,
                                                num_workers=NUM_WORKERS,
                                                drop_last=DROP_LAST)
+    #train_loader = torch.utils.data.DataLoader(dataset_train,
+    #                                           batch_size=BATCH_SIZE,
+    #                                           shuffle=True,
+    #                                           pin_memory=PIN_MEMORY,
+    #                                           num_workers=NUM_WORKERS,
+    #                                           drop_last=DROP_LAST)
 
     NUM_CLASS = len(train_loader.dataset.classes)
     print("Number of Training Classes: {}".format(NUM_CLASS))
@@ -240,7 +240,7 @@ if __name__ == '__main__':
 
     # ======= train & validation & save checkpoint =======#
     # frequency to display training loss & acc
-    DISP_FREQ = len(train_loader) // 100  
+    DISP_FREQ = len(train_loader) // 100
 
     # use the first 1/25 epochs to warm up
     #NUM_EPOCH_WARM_UP = NUM_EPOCH // 25
