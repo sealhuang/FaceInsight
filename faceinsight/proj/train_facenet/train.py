@@ -92,7 +92,7 @@ if __name__ == '__main__':
                         transforms.ToTensor(),
                         transforms.Normalize(mean=RGB_MEAN, std=RGB_STD),
                         ])
-    train_data_dir = os.path.join(DATA_ROOT, 'CASIA-WebFace', 'cropped')
+    train_data_dir = os.path.join(DATA_ROOT, 'CASIA-WebFace', 'cropped_test')
     dataset_train = datasets.ImageFolder(train_data_dir, train_transform)
 
     # create a weighted random sampler to process imbalanced data
@@ -179,9 +179,9 @@ if __name__ == '__main__':
     # separate batch_norm parameters from others; do not do weight decay for
     # batch_norm parameters to improve the generalizability
     # For ShuffleNet
-    #ignored_params = list(map(id, BACKBONE.classifier.parameters()))
+    ignored_params = list(map(id, BACKBONE.classifier.parameters()))
     # For MobileFaceNet
-    ignored_params = list(map(id, BACKBONE.linear.parameters()))
+    #ignored_params = list(map(id, BACKBONE.linear.parameters()))
     ignored_params += list(map(id, HEAD.weight))
     backbone_params_only_bn = []
     backbone_params_prelu = []
@@ -189,9 +189,9 @@ if __name__ == '__main__':
         if isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm1d):
             ignored_params += list(map(id, m.parameters()))
             backbone_params_only_bn += m.parameters()
-        elif isinstance(m, nn.PReLU):
-            ignored_params += list(map(id, m.parameters()))
-            backbone_params_prelu += m.parameters()
+        #elif isinstance(m, nn.PReLU):
+        #    ignored_params += list(map(id, m.parameters()))
+        #    backbone_params_prelu += m.parameters()
         else:
             pass
     backbone_params_base = filter(lambda p: id(p) not in ignored_params,
@@ -200,12 +200,12 @@ if __name__ == '__main__':
                             'weight_decay': WEIGHT_DECAY},
                            {'params': backbone_params_only_bn,
                             'weight_decay': WEIGHT_DECAY},
-                           #{'params': BACKBONE.classifier.parameters(),
-                           # 'weight_decay': WEIGHT_DECAY*1e-1},
-                           {'params': backbone_params_prelu,
-                            'weight_decay': 0.0},
-                           {'params': BACKBONE.linear.parameters(),
+                           {'params': BACKBONE.classifier.parameters(),
                             'weight_decay': WEIGHT_DECAY*1e1},
+                           #{'params': backbone_params_prelu,
+                           # 'weight_decay': 0.0},
+                           #{'params': BACKBONE.linear.parameters(),
+                           # 'weight_decay': WEIGHT_DECAY*1e1},
                            {'params': HEAD.weight,
                             'weight_decay': WEIGHT_DECAY*1e1},
                           ],
@@ -240,7 +240,7 @@ if __name__ == '__main__':
 
     # ======= train & validation & save checkpoint =======#
     # frequency to display training loss & acc
-    DISP_FREQ = len(train_loader) // 100
+    DISP_FREQ = len(train_loader) // 10
 
     # use the first 1/25 epochs to warm up
     #NUM_EPOCH_WARM_UP = NUM_EPOCH // 25
@@ -329,32 +329,32 @@ if __name__ == '__main__':
         #                     normalize=True, scale_each=True)
         #writer.add_image('global_weight', x, epoch+1)
         # for mobilefacenet
-        x = vutils.make_grid(bb_params['conv1.conv.weight'].clone().cpu().data,
-                             normalize=True, scale_each=True)
-        writer.add_image('conv1', x, epoch+1)
-        x = vutils.make_grid(bb_params['conv_6_dw.conv.weight'].clone().cpu().data,
-                             normalize=True, scale_each=True)
-        writer.add_image('global_weight', x, epoch+1)
+        #x = vutils.make_grid(bb_params['conv1.conv.weight'].clone().cpu().data,
+        #                     normalize=True, scale_each=True)
+        #writer.add_image('conv1', x, epoch+1)
+        #x = vutils.make_grid(bb_params['conv_6_dw.conv.weight'].clone().cpu().data,
+        #                     normalize=True, scale_each=True)
+        #writer.add_image('global_weight', x, epoch+1)
 
-        # perform validation & save checkpoints per epoch
-        # validation statistics per epoch (buffer for visualization)
-        print('=' * 60)
-        print('Perform Evaluation on LFW, and Save Checkpoints...')
-        # Val score for LFW
-        accuracy_lfw, best_threshold_lfw, roc_curve_lfw = perform_lfw_val(
-                            MULTI_GPU, DEVICE, EMBEDDING_SIZE, BATCH_SIZE,
-                            BACKBONE, lfw_pairs, lfw_issame)
-        buffer_val(writer, 'LFW', accuracy_lfw, best_threshold_lfw,
-                   roc_curve_lfw, batch+1)
-        print('Epoch {}/{}, Evaluation: LFW Acc: {}'.format(epoch+1, NUM_EPOCH,
-                                                            accuracy_lfw))
-        print('=' * 60)
+        ## perform validation & save checkpoints per epoch
+        ## validation statistics per epoch (buffer for visualization)
+        #print('=' * 60)
+        #print('Perform Evaluation on LFW, and Save Checkpoints...')
+        ## Val score for LFW
+        #accuracy_lfw, best_threshold_lfw, roc_curve_lfw = perform_lfw_val(
+        #                    MULTI_GPU, DEVICE, EMBEDDING_SIZE, BATCH_SIZE,
+        #                    BACKBONE, lfw_pairs, lfw_issame)
+        #buffer_val(writer, 'LFW', accuracy_lfw, best_threshold_lfw,
+        #           roc_curve_lfw, batch+1)
+        #print('Epoch {}/{}, Evaluation: LFW Acc: {}'.format(epoch+1, NUM_EPOCH,
+        #                                                    accuracy_lfw))
+        #print('=' * 60)
 
-        if MULTI_GPU:
-            torch.save(BACKBONE.module.state_dict(), os.path.join(MODEL_ROOT, 'Backbone_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth'.format(BACKBONE_NAME, epoch+1, batch, get_time())))
-            torch.save(HEAD.module.state_dict(), os.path.join(MODEL_ROOT, 'Head_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth'.format(HEAD_NAME, epoch+1, batch, get_time())))
-        else:
-            torch.save(BACKBONE.state_dict(), os.path.join(MODEL_ROOT, 'Backbone_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth'.format(BACKBONE_NAME, epoch+1, batch, get_time())))
-            torch.save(HEAD.state_dict(), os.path.join(MODEL_ROOT, 'Head_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth'.format(HEAD_NAME, epoch+1, batch, get_time())))
+        #if MULTI_GPU:
+        #    torch.save(BACKBONE.module.state_dict(), os.path.join(MODEL_ROOT, 'Backbone_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth'.format(BACKBONE_NAME, epoch+1, batch, get_time())))
+        #    torch.save(HEAD.module.state_dict(), os.path.join(MODEL_ROOT, 'Head_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth'.format(HEAD_NAME, epoch+1, batch, get_time())))
+        #else:
+        #    torch.save(BACKBONE.state_dict(), os.path.join(MODEL_ROOT, 'Backbone_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth'.format(BACKBONE_NAME, epoch+1, batch, get_time())))
+        #    torch.save(HEAD.state_dict(), os.path.join(MODEL_ROOT, 'Head_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth'.format(HEAD_NAME, epoch+1, batch, get_time())))
 
 
