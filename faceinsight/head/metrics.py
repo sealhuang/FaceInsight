@@ -92,7 +92,7 @@ class ArcFace(nn.Module):
         self.weight = Parameter(torch.FloatTensor(out_features, in_features))
         nn.init.xavier_uniform_(self.weight)
         #nn.init.kaiming_uniform_(self.weight)
-        #self.weight.data.uniform_(-1, 1).renorm_(2, 0, 1e-5).mul_(1e5)
+        self.weight.data.uniform_(-1, 1).renorm_(2, 0, 1e-5).mul_(1e5)
       
         self.easy_margin = easy_margin
         self.cos_m = math.cos(m)
@@ -130,6 +130,7 @@ class ArcFace(nn.Module):
         # ------torch.where(out_i = {x_i if condition_i else y_i) ------
         # you can use torch.where if your torch.__version__ is 0.4
         output = (one_hot * phi) + ((1.0 - one_hot) * cosine)
+        print(output)
         output *= self.s
 
         return output
