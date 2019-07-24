@@ -92,7 +92,7 @@ if __name__ == '__main__':
                         transforms.ToTensor(),
                         transforms.Normalize(mean=RGB_MEAN, std=RGB_STD),
                         ])
-    train_data_dir = os.path.join(DATA_ROOT, 'CASIA-WebFace', 'cropped_test')
+    train_data_dir = os.path.join(DATA_ROOT, 'CASIA-WebFace', 'cropped')
     dataset_train = datasets.ImageFolder(train_data_dir, train_transform)
 
     # create a weighted random sampler to process imbalanced data
@@ -151,6 +151,7 @@ if __name__ == '__main__':
 
     HEAD_DICT = {'ArcFace': ArcFace(in_features=EMBEDDING_SIZE,
                                     out_features=NUM_CLASS,
+                                    m=0.2,
                                     device_id=GPU_ID),
                  'CosFace': CosFace(in_features=EMBEDDING_SIZE,
                                     out_features=NUM_CLASS,
@@ -240,7 +241,7 @@ if __name__ == '__main__':
 
     # ======= train & validation & save checkpoint =======#
     # frequency to display training loss & acc
-    DISP_FREQ = len(train_loader) // 10
+    DISP_FREQ = len(train_loader) // 100
 
     # use the first 1/25 epochs to warm up
     #NUM_EPOCH_WARM_UP = NUM_EPOCH // 25
@@ -322,9 +323,9 @@ if __name__ == '__main__':
             writer.add_histogram(name, param.clone().cpu().data.numpy(),epoch+1)
         bb_params = BACKBONE.state_dict()
         # for shufflenet
-        #x = vutils.make_grid(bb_params['conv1.0.weight'].clone().cpu().data,
-        #                     normalize=True, scale_each=True)
-        #writer.add_image('conv1', x, epoch+1)
+        x = vutils.make_grid(bb_params['conv1.0.weight'].clone().cpu().data,
+                             normalize=True, scale_each=True)
+        writer.add_image('conv1', x, epoch+1)
         #x = vutils.make_grid(bb_params['global_weight.conv.weight'].clone().cpu().data,
         #                     normalize=True, scale_each=True)
         #writer.add_image('global_weight', x, epoch+1)
@@ -336,25 +337,25 @@ if __name__ == '__main__':
         #                     normalize=True, scale_each=True)
         #writer.add_image('global_weight', x, epoch+1)
 
-        ## perform validation & save checkpoints per epoch
-        ## validation statistics per epoch (buffer for visualization)
-        #print('=' * 60)
-        #print('Perform Evaluation on LFW, and Save Checkpoints...')
-        ## Val score for LFW
-        #accuracy_lfw, best_threshold_lfw, roc_curve_lfw = perform_lfw_val(
-        #                    MULTI_GPU, DEVICE, EMBEDDING_SIZE, BATCH_SIZE,
-        #                    BACKBONE, lfw_pairs, lfw_issame)
-        #buffer_val(writer, 'LFW', accuracy_lfw, best_threshold_lfw,
-        #           roc_curve_lfw, batch+1)
-        #print('Epoch {}/{}, Evaluation: LFW Acc: {}'.format(epoch+1, NUM_EPOCH,
-        #                                                    accuracy_lfw))
-        #print('=' * 60)
+        # perform validation & save checkpoints per epoch
+        # validation statistics per epoch (buffer for visualization)
+        print('=' * 60)
+        print('Perform Evaluation on LFW, and Save Checkpoints...')
+        # Val score for LFW
+        accuracy_lfw, best_threshold_lfw, roc_curve_lfw = perform_lfw_val(
+                            MULTI_GPU, DEVICE, EMBEDDING_SIZE, BATCH_SIZE,
+                            BACKBONE, lfw_pairs, lfw_issame)
+        buffer_val(writer, 'LFW', accuracy_lfw, best_threshold_lfw,
+                   roc_curve_lfw, batch+1)
+        print('Epoch {}/{}, Evaluation: LFW Acc: {}'.format(epoch+1, NUM_EPOCH,
+                                                            accuracy_lfw))
+        print('=' * 60)
 
-        #if MULTI_GPU:
-        #    torch.save(BACKBONE.module.state_dict(), os.path.join(MODEL_ROOT, 'Backbone_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth'.format(BACKBONE_NAME, epoch+1, batch, get_time())))
-        #    torch.save(HEAD.module.state_dict(), os.path.join(MODEL_ROOT, 'Head_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth'.format(HEAD_NAME, epoch+1, batch, get_time())))
-        #else:
-        #    torch.save(BACKBONE.state_dict(), os.path.join(MODEL_ROOT, 'Backbone_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth'.format(BACKBONE_NAME, epoch+1, batch, get_time())))
-        #    torch.save(HEAD.state_dict(), os.path.join(MODEL_ROOT, 'Head_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth'.format(HEAD_NAME, epoch+1, batch, get_time())))
+        if MULTI_GPU:
+            torch.save(BACKBONE.module.state_dict(), os.path.join(MODEL_ROOT, 'Backbone_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth'.format(BACKBONE_NAME, epoch+1, batch, get_time())))
+            torch.save(HEAD.module.state_dict(), os.path.join(MODEL_ROOT, 'Head_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth'.format(HEAD_NAME, epoch+1, batch, get_time())))
+        else:
+            torch.save(BACKBONE.state_dict(), os.path.join(MODEL_ROOT, 'Backbone_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth'.format(BACKBONE_NAME, epoch+1, batch, get_time())))
+            torch.save(HEAD.state_dict(), os.path.join(MODEL_ROOT, 'Head_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth'.format(HEAD_NAME, epoch+1, batch, get_time())))
 
 

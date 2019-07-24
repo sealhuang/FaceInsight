@@ -5,6 +5,7 @@ from __future__ import print_function
 from __future__ import division
 
 import math
+#import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -90,7 +91,7 @@ class ArcFace(nn.Module):
         self.m = m
  
         self.weight = Parameter(torch.FloatTensor(out_features, in_features))
-        nn.init.xavier_uniform_(self.weight)
+        #nn.init.xavier_uniform_(self.weight)
         #nn.init.kaiming_uniform_(self.weight)
         self.weight.data.uniform_(-1, 1).renorm_(2, 0, 1e-5).mul_(1e5)
       
@@ -127,10 +128,13 @@ class ArcFace(nn.Module):
         if self.device_id != None:
             one_hot = one_hot.cuda(self.device_id[0])
         one_hot.scatter_(1, label.view(-1, 1).long(), 1)
+
         # ------torch.where(out_i = {x_i if condition_i else y_i) ------
         # you can use torch.where if your torch.__version__ is 0.4
         output = (one_hot * phi) + ((1.0 - one_hot) * cosine)
-        print(output)
+        #masked_cos = one_hot * cosine
+        #masked_cos = masked_cos.cpu().data.numpy()
+        #print(masked_cos[np.nonzero(masked_cos)][:10])
         output *= self.s
 
         return output
