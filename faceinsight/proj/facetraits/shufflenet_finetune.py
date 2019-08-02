@@ -26,13 +26,11 @@ from bnuclfdataset import PF16FaceDataset
 class clsNet1(nn.Module):
     def __init__(self, class_num):
         super(clsNet1, self).__init__()
-        self.fc1 = nn.Linear(512, 128)
-        self.fc2 = nn.Linear(128, class_num)
+        self.fc1 = nn.Linear(512, class_num, bias=False)
 
     def forward(self, x):
         """Pass the input tensor through each of our operations."""
         x = self.fc1(x)
-        x = self.fc2(x)
         return x
 
 
@@ -174,7 +172,7 @@ def train(backbone, classifier, criterion, device, train_loader, optimizer,
         loss.backward()
         optimizer.step()
         writer.add_scalar('data/training-loss', loss,
-                          (epoch-1)*int(len(train_loader.sampler.indices)/50)+batch_idx+1)
+                          (epoch-1)*int(len(train_loader.sampler.indices)/100)+batch_idx+1)
         if batch_idx % 15 == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\t Loss: {:.6f}'.format(
                 epoch, batch_idx*len(data), len(train_loader.sampler.indices),
@@ -227,6 +225,8 @@ def test(backbone, classifier, criterion, device, test_loader, epoch, writer):
 def train_ensemble_model_sugar(factor, random_seed):
     """Main function."""
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    if torch.cuda.is_available():
+        torch.backends.cudnn.benchmark = True
 
     # load data for cross-validation
     data_dir = '/home/huanglj/proj'
@@ -253,8 +253,8 @@ def train_ensemble_model_sugar(factor, random_seed):
                                              sample_size_per_class,
                                              train_sampler,
                                              val_sampler,
-                                             batch_size=50,
-                                             num_workers=25,
+                                             batch_size=100,
+                                             num_workers=16,
                                              pin_memory=True)
         # model training and eval
         model_backbone = ShuffleNetV2(n_class=512, input_size=224,
@@ -269,18 +269,18 @@ def train_ensemble_model_sugar(factor, random_seed):
         writer = SummaryWriter()
         optimizer = optim.SGD([
                         {'params': model_backbone.parameters(),
-                         'weight_decay': 1e-8},
+                         'weight_decay': 5e-5},
                         {'params': classifier.parameters(),
-                         'weight_decay': 1e-8}
-                        ], lr=0.001, momentum=0.9)
-        scheduler = optim.lr_scheduler.StepLR(optimizer,step_size=15,gamma=0.1)
+                         'weight_decay': 1e-9}
+                        ], lr=0.005, momentum=0.9)
+        scheduler = optim.lr_scheduler.StepLR(optimizer,step_size=25,gamma=0.1)
         criterion = nn.CrossEntropyLoss(reduction='mean')
 
         max_patience = 15
         patience_count = 0
         max_acc = 0
         test_acc = []
-        max_epoch = 45
+        max_epoch = 50
         for epoch in range(1, max_epoch+1):
             scheduler.step()
             train(model_backbone, classifier, criterion, device, train_loader,
@@ -289,19 +289,19 @@ def train_ensemble_model_sugar(factor, random_seed):
                        val_loader, epoch, writer)
             test_acc.append(acc)
             if acc >= (max_acc-0.5):
+                patience_count = 0
                 if acc>=max_acc:
                     max_acc = acc
-                patience_count = 0
-                sel_epoch = epoch
-                best_backbone = copy.deepcopy(model_backbone)
-                best_classifier = copy.deepcopy(classifier)
+                    sel_epoch = epoch
+                    best_backbone = copy.deepcopy(model_backbone)
+                    best_classifier = copy.deepcopy(classifier)
             else:
                 patience_count += 1
             # save model
             if patience_count==max_patience or epoch==max_epoch:
-                saved_backbone_file = 'finetuned_shufflenet_backbone4%s_f%se%s.pth'%(factor.lower(), fold, sel_epoch)
+                saved_backbone_file = 'finetuned_shufflenet4%s_backbone_f%se%s.pth'%(factor.lower(), fold, sel_epoch)
                 torch.save(best_backbone.state_dict(), saved_backbone_file)
-                saved_clfier_file = 'finetuned_shufflenet_clfier4%s_f%se%s.pth'%(factor.lower(), fold, sel_epoch)
+                saved_clfier_file = 'finetuned_shufflenet4%s_clfier_f%se%s.pth'%(factor.lower(), fold, sel_epoch)
                 torch.save(best_classifier.state_dict(), saved_clfier_file)
                 # save test accruacy
                 with open('test_acc.csv', 'a+') as f:
@@ -313,29 +313,18 @@ def train_ensemble_model_sugar(factor, random_seed):
 
 def train_ensemble_model():
     """Main function."""
-    # params
-    # A. base_model: weight_decay=1e-8, classifier: weight decay=5e-8,
-    #    lr=0.001, gamma=0.1
-    # H. base_model: weight_decay=1e-8, classifier: weight decay=5e-8,
-    #    lr=0.001, gamma=0.1
-    # L. base_model: weight_decay 1e-8, classifier: weight decay 5e-8,
-    #    lr=0.001, gamma=0.1
-    # N. base_model: weight_decay 1e-8, classifier: weight decay 1e-8,
-    #    lr=0.001, gamma=0.1
-    # Q3. base_model: weight_decay 1e-8, classifier: weight decay 1e-8,
-    #    lr=0.001, gamma=0.1
-    # X2. base_model: weight_decay=1e-8, classifier: weight decay=1e-7,
-    #    lr=0.001, gamma=0.2
-    # X3. base_model: weight_decay=1e-8, classifier: weight decay=5e-7,
-    #    lr=0.001, gamma=0.1
-    # X4. base_model: weight_decay=1e-8, classifier: weight decay=5e-8,
-    #    lr=0.001, gamma=0.1
-    # F. base_model: weight_decay=1e-8, classifier: weight decay=1e-8,
-    #    lr=0.001, gamma=0.1
-    # ?E. base_model: weight_decay 1e-8, classifier: weight decay 5e-8, lr 0.001
+    # hyper-parameters
+    # A:  backbone: weight_decay=5e-5, classifier: weight decay=1e-8,
+    #     lr=0.005, gamma=0.1
+    # X1: backbone: weight_decay=1e-5, classifier: weight decay=1e-10,
+    #     lr=0.005, gamma=0.1
+    # X2: backbone: weight_decay=5e-5, classifier: weight decay=1e-10,
+    #     lr=0.005, gamma=0.1
+    # X3: backbone: weight_decay=5e-5, classifier: weight decay=1e-9,
+    #     lr=0.005, gamma=0.1
     # 
     #factor_list = ['E', 'I', 'M', 'Q2', 'X1', 'Y1', 'Y2', 'Y3']
-    factor_list = ['A']
+    factor_list = ['X3']
     seed = 10
     for f in factor_list:
         print('Factor %s'%(f))
