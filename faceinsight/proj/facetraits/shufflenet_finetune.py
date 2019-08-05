@@ -269,9 +269,9 @@ def train_ensemble_model_sugar(factor, random_seed):
         writer = SummaryWriter()
         optimizer = optim.SGD([
                         {'params': model_backbone.parameters(),
-                         'weight_decay': 5e-5},
+                         'weight_decay': 1e-5},
                         {'params': classifier.parameters(),
-                         'weight_decay': 1e-9}
+                         'weight_decay': 5e-8}
                         ], lr=0.005, momentum=0.9)
         scheduler = optim.lr_scheduler.StepLR(optimizer,step_size=25,gamma=0.1)
         criterion = nn.CrossEntropyLoss(reduction='mean')
@@ -316,15 +316,31 @@ def train_ensemble_model():
     # hyper-parameters
     # A:  backbone: weight_decay=5e-5, classifier: weight decay=1e-8,
     #     lr=0.005, gamma=0.1
+    # E:  backbone: weight_decay=1e-5, classifier: weight decay=5e-8,
+    #     lr=0.005, gamma=0.1
+    # F:  backbone: weight_decay=1e-5, classifier: weight decay=5e-8,
+    #     lr=0.005, gamma=0.1
+    # H:  backbone: weight_decay=1e-5, classifier: weight decay=1e-8,
+    #     lr=0.003, gamma=0.1
+    # I:  backbone: weight_decay=1e-5, classifier: weight decay=5e-8,
+    #     lr=0.005, gamma=0.1
+    # L:  backbone: weight_decay=5e-5, classifier: weight decay=5e-8,
+    #     lr=0.003, gamma=0.1
+    # N:  backbone: weight_decay=1e-5, classifier: weight decay=1e-8,
+    #     lr=0.003, gamma=0.1
+    # Q3: backbone: weight_decay=5e-5, classifier: weight decay=5e-8,
+    #     lr=0.003, gamma=0.1
     # X1: backbone: weight_decay=1e-5, classifier: weight decay=1e-10,
     #     lr=0.005, gamma=0.1
     # X2: backbone: weight_decay=5e-5, classifier: weight decay=1e-10,
     #     lr=0.005, gamma=0.1
     # X3: backbone: weight_decay=5e-5, classifier: weight decay=1e-9,
     #     lr=0.005, gamma=0.1
+    # X4: backbone: weight_decay=1e-5, classifier: weight decay=5e-8,
+    #     lr=0.005, gamma=0.1
     # 
-    #factor_list = ['E', 'I', 'M', 'Q2', 'X1', 'Y1', 'Y2', 'Y3']
-    factor_list = ['X3']
+    #factor_list = ['M', 'Q2', 'X1', 'Y1', 'Y2', 'Y3']
+    factor_list = ['E']
     seed = 10
     for f in factor_list:
         print('Factor %s'%(f))
