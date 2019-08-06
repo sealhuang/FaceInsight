@@ -316,9 +316,15 @@ def train_ensemble_model():
     # hyper-parameters
     # A:  backbone: weight_decay=5e-5, classifier: weight decay=1e-8,
     #     lr=0.005, gamma=0.1
+    # B:  backbone: weight_decay=1e-5, classifier: weight decay=5e-9,
+    #     lr=0.005, gamma=0.1
+    # C:  backbone: weight_decay=1e-5, classifier: weight decay=5e-9,
+    #     lr=0.005, gamma=0.1
     # E:  backbone: weight_decay=1e-5, classifier: weight decay=5e-8,
     #     lr=0.005, gamma=0.1
     # F:  backbone: weight_decay=1e-5, classifier: weight decay=5e-8,
+    #     lr=0.005, gamma=0.1
+    # G:  backbone: weight_decay=1e-5, classifier: weight decay=5e-8,
     #     lr=0.005, gamma=0.1
     # H:  backbone: weight_decay=1e-5, classifier: weight decay=1e-8,
     #     lr=0.003, gamma=0.1
@@ -326,10 +332,20 @@ def train_ensemble_model():
     #     lr=0.005, gamma=0.1
     # L:  backbone: weight_decay=5e-5, classifier: weight decay=5e-8,
     #     lr=0.003, gamma=0.1
+    # M:  backbone: weight_decay=1e-5, classifier: weight decay=5e-8,
+    #     lr=0.005, gamma=0.1
     # N:  backbone: weight_decay=1e-5, classifier: weight decay=1e-8,
     #     lr=0.003, gamma=0.1
+    # O:  backbone: weight_decay=1e-5, classifier: weight decay=5e-8,
+    #     lr=0.005, gamma=0.1
+    # Q1: backbone: weight_decay=1e-5, classifier: weight decay=5e-9,
+    #     lr=0.005, gamma=0.1
+    # Q2: backbone: weight_decay=1e-5, classifier: weight decay=5e-8,
+    #     lr=0.005, gamma=0.1
     # Q3: backbone: weight_decay=5e-5, classifier: weight decay=5e-8,
     #     lr=0.003, gamma=0.1
+    # Q4: backbone: weight_decay=1e-5, classifier: weight decay=5e-8,
+    #     lr=0.005, gamma=0.1
     # X1: backbone: weight_decay=1e-5, classifier: weight decay=1e-10,
     #     lr=0.005, gamma=0.1
     # X2: backbone: weight_decay=5e-5, classifier: weight decay=1e-10,
@@ -338,9 +354,7 @@ def train_ensemble_model():
     #     lr=0.005, gamma=0.1
     # X4: backbone: weight_decay=1e-5, classifier: weight decay=5e-8,
     #     lr=0.005, gamma=0.1
-    # 
-    #factor_list = ['M', 'Q2', 'X1', 'Y1', 'Y2', 'Y3']
-    factor_list = ['E']
+    factor_list = ['B']
     seed = 10
     for f in factor_list:
         print('Factor %s'%(f))
