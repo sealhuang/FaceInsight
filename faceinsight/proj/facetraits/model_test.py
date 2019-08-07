@@ -255,14 +255,7 @@ def face_eval(face_file, ensemble_model, device):
             out = F.softmax(model(data), dim=1)
         out = out.cpu().data.numpy()[0][1]
         output.append(out)
-    #return np.mean(output)
-    f = []
-    for item in output:
-        if item>0.5:
-            f.append(1)
-        else:
-            f.append(0)
-    return np.mean(f)
+    return np.mean(output)
 
 def main(args):
     input_img = args.input_img

@@ -4,7 +4,8 @@ import os
 from flask import Flask, flash, request, redirect, url_for, send_from_directory
 from werkzeug.utils import secure_filename
 from flask import request, render_template
-from model_test import load_ensemble_model
+from model_test import load_ensemble_vggfacenet
+from model_test import load_ensemble_shufflenet
 from model_test import crop_face
 from model_test import align_face
 from model_test import face_eval
@@ -18,7 +19,8 @@ DEVICE = 'cpu'
 
 # load model
 FACTOR = 'A'
-ensemble_model = load_ensemble_model(FACTOR, DEVICE)
+#ensemble_model = load_ensemble_model(FACTOR, DEVICE)
+ensemble_model = load_ensemble_shufflenet(FACTOR, DEVICE)
 
 # initialize the app
 app = Flask(__name__, template_folder='./')

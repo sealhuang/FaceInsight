@@ -33,6 +33,17 @@ class clsNet1(nn.Module):
         x = self.fc1(x)
         return x
 
+class clsNet2Backbone(nn.Module):
+    def __init__(self, base_model):
+        super(clsNet2Backbone, self).__init__()
+        self.backbone = nn.Sequential(*list(base_model.children())[:-1])
+
+    def forward(self, x):
+        """Pass the input tensor through each of our operations."""
+        x = self.backbone(x)
+        print(x.size())
+        return x
+
 
 def get_img_stats(csv_file, face_dir, batch_size, num_workers, pin_memory):
     """Get mean and std. of the images."""
@@ -94,8 +105,10 @@ def load_data(factor, data_dir, sample_size_per_class,
     #                     num_workers=num_workers, pin_memory=pin_memory)
     
     # define transforms
-    normalize = transforms.Normalize(mean=[0.518, 0.493, 0.506],
-                                     std=[0.270, 0.254, 0.277])
+    #normalize = transforms.Normalize(mean=[0.518, 0.493, 0.506],
+    #                                 std=[0.270, 0.254, 0.277])
+    normalize = transforms.Normalize(mean=[0.5, 0.5, 0.5],
+                                     std=[0.5, 0.5, 0.5])
     #normalize = transforms.Normalize(mean=(0.507395516207, ),
     #                                 std=(0.255128989415, ))
     #transforms.RandomResizedCrop(224, scale=(0.7, 0.9), ratio=(1.0, 1.0)),
@@ -262,7 +275,8 @@ def train_ensemble_model_sugar(factor, random_seed):
         backbone_file = './shufflefacenet_512/Backbone_shufflenet_v2_x1_0_Epoch_40_checkpoint.pth'
         model_backbone.load_state_dict(torch.load(backbone_file,
                                     map_location=lambda storage, loc: storage))
-        model_backbone = model_backbone.to(device)
+        #model_backbone = model_backbone.to(device)
+        model_backbone = clsNet2Backbone(model_backbone).to(device)
         classifier = clsNet1(2).to(device)
 
         # summary writer config
@@ -354,7 +368,7 @@ def train_ensemble_model():
     #     lr=0.005, gamma=0.1
     # X4: backbone: weight_decay=1e-5, classifier: weight decay=5e-8,
     #     lr=0.005, gamma=0.1
-    factor_list = ['B']
+    factor_list = ['A']
     seed = 10
     for f in factor_list:
         print('Factor %s'%(f))
