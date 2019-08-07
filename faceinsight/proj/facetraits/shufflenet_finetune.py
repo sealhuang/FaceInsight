@@ -19,8 +19,8 @@ from torch.utils.data.sampler import SubsetRandomSampler
 from sklearn.metrics import confusion_matrix
 from tensorboardX import SummaryWriter
 
-#from faceinsight.models.shufflenet_v2 import ShuffleNetV2
-from shufflenet_v2 import ShuffleNetV2
+from faceinsight.models.shufflenet_v2 import ShuffleNetV2
+#from shufflenet_v2 import ShuffleNetV2
 from bnuclfdataset import PF16FaceDataset
 
 
@@ -33,6 +33,17 @@ class clsNet1(nn.Module):
         """Pass the input tensor through each of our operations."""
         x = self.fc1(x)
         return x
+
+class clsNet2(nn.Module):
+    def __init__(self, class_num):
+        super(clsNet2, self).__init__()
+        self.weight = nn.Parameter(torch.FloatTensor(class_num, 512))
+        self.weight.data.uniform_(-1, 1).renorm_(2, 0, 1e-5).mul_(1e5)
+
+    def forward(self, x):
+        """Pass the input tensor through each of our operations."""
+        cosine = F.linear(x, F.normalize(self.weight))
+        return cosine
 
 def get_img_stats(csv_file, face_dir, batch_size, num_workers, pin_memory):
     """Get mean and std. of the images."""
@@ -265,7 +276,8 @@ def train_ensemble_model_sugar(factor, random_seed):
         model_backbone.load_state_dict(torch.load(backbone_file,
                                     map_location=lambda storage, loc: storage))
         model_backbone = model_backbone.to(device)
-        classifier = clsNet1(2).to(device)
+        #classifier = clsNet1(2).to(device)
+        classifier = clsNet2(2).to(device)
 
         # summary writer config
         writer = SummaryWriter()
