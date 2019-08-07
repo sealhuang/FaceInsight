@@ -19,7 +19,8 @@ from torch.utils.data.sampler import SubsetRandomSampler
 from sklearn.metrics import confusion_matrix
 from tensorboardX import SummaryWriter
 
-from faceinsight.models.shufflenet_v2 import ShuffleNetV2
+#from faceinsight.models.shufflenet_v2 import ShuffleNetV2
+from shufflenet_v2 import ShuffleNetV2
 from bnuclfdataset import PF16FaceDataset
 
 
@@ -32,18 +33,6 @@ class clsNet1(nn.Module):
         """Pass the input tensor through each of our operations."""
         x = self.fc1(x)
         return x
-
-class clsNet2Backbone(nn.Module):
-    def __init__(self, base_model):
-        super(clsNet2Backbone, self).__init__()
-        self.backbone = nn.Sequential(*list(base_model.children())[:-1])
-
-    def forward(self, x):
-        """Pass the input tensor through each of our operations."""
-        x = self.backbone(x)
-        print(x.size())
-        return x
-
 
 def get_img_stats(csv_file, face_dir, batch_size, num_workers, pin_memory):
     """Get mean and std. of the images."""
@@ -275,26 +264,25 @@ def train_ensemble_model_sugar(factor, random_seed):
         backbone_file = './shufflefacenet_512/Backbone_shufflenet_v2_x1_0_Epoch_40_checkpoint.pth'
         model_backbone.load_state_dict(torch.load(backbone_file,
                                     map_location=lambda storage, loc: storage))
-        #model_backbone = model_backbone.to(device)
-        model_backbone = clsNet2Backbone(model_backbone).to(device)
+        model_backbone = model_backbone.to(device)
         classifier = clsNet1(2).to(device)
 
         # summary writer config
         writer = SummaryWriter()
         optimizer = optim.SGD([
                         {'params': model_backbone.parameters(),
-                         'weight_decay': 1e-5},
+                         'weight_decay': 5e-5},
                         {'params': classifier.parameters(),
                          'weight_decay': 5e-8}
-                        ], lr=0.005, momentum=0.9)
-        scheduler = optim.lr_scheduler.StepLR(optimizer,step_size=25,gamma=0.1)
+                        ], lr=0.001, momentum=0.9)
+        scheduler = optim.lr_scheduler.StepLR(optimizer,step_size=15,gamma=0.1)
         criterion = nn.CrossEntropyLoss(reduction='mean')
 
         max_patience = 15
         patience_count = 0
         max_acc = 0
         test_acc = []
-        max_epoch = 50
+        max_epoch = 40
         for epoch in range(1, max_epoch+1):
             scheduler.step()
             train(model_backbone, classifier, criterion, device, train_loader,
