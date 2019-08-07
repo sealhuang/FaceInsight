@@ -12,6 +12,7 @@ import torch.nn.functional as F
 from torchvision import transforms
 import torchvision.utils as vutils
 from faceinsight.models import vggface
+from faceinsight.models.shufflenet_v2 import ShuffleNetV2
 from faceinsight.detection import detect_faces
 from faceinsight.detection.align_trans import get_reference_facial_points
 from faceinsight.detection.align_trans import warp_and_crop_face
@@ -28,6 +29,16 @@ class clsNet1(nn.Module):
         x = self.base_model(x)
         x = self.classifier(x)
         #return F.log_softmax(x, dim=1)
+        return x
+
+class ShuffleNetClfier(nn.Module):
+    def __init__(self, class_num):
+        super(ShuffleNetClfier, self).__init__()
+        self.fc1 = nn.Linear(512, class_num, bias=False)
+
+    def forward(self, x):
+        """Pass the input tensor through each of our operations."""
+        x = self.fc1(x)
         return x
 
 
@@ -53,6 +64,21 @@ def load_model(model_file, device):
         model = model.cuda()
     model.eval()
     return model
+
+def load_shufflenet(backbone_file, clfier_file, device):
+    model_backbone = ShuffleNetV2(n_class=512, input_size=224,
+                                  width_mult=1.0)
+    model_backbone.load_state_dict(torch.load(backbone_file,
+                                     map_location=lambda storage, loc: storage))
+    classifier = ShuffleNetClfier(2)
+    classifier.load_state_dict(torch.load(clfier_file,
+                                     map_location=lambda storage, loc: storage))
+    if device=='gpu':
+        model_backbone = model_backbone.cuda()
+        classifier = classifier.cuda()
+    model_backbone.eval()
+    classifier.eval()
+    return [model_backbone, classifier]
 
 def get_square_crop_box(crop_box, box_scalar=1.0):
     """Get square crop box based on bounding box and the expanding scalar.
@@ -182,7 +208,7 @@ def align_face(input_img, image_size, scalar):
         img_warped.save(output_filename)
         return output_filename
 
-def load_ensemble_model(factor, device):
+def load_ensemble_vggfacenet(factor, device):
     #device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     # load model
     ensemble_models = []
@@ -192,6 +218,22 @@ def load_ensemble_model(factor, device):
         model_file = [os.path.join('./model_weights',item) for item in file_list
                         if item.startswith(model_file_prefix+'_f%s'%(i))][0]
         model = load_model(model_file, device)
+        ensemble_models.append(model)
+
+    return ensemble_models
+
+def load_ensemble_shufflenet(factor, device):
+    ensemble_models = []
+    for i in range(5):
+        model_file_prefix = 'finetuned_shufflenet4%s_'%(factor.lower())
+        file_list = os.listdir('./16pfmodels_shufflenet')
+        backbone_file = [os.path.join('./16pfmodels_shufflenet', item)
+                    for item in file_list
+                    if item.startswith(model_file_prefix+'backbone_f%s'%(i))][0]
+        clfier_file = [os.path.join('./16pfmodels_shufflenet', item)
+                    for item in file_list
+                    if item.startswith(model_file_prefix+'clfier_f%s'%(i))][0]
+        model = load_shufflenet(backbone_file, clfier_file, device)
         ensemble_models.append(model)
 
     return ensemble_models
@@ -206,10 +248,21 @@ def face_eval(face_file, ensemble_model, device):
     for model in ensemble_model:
         if device=='gpu':
             data = data.cuda()
-        out = F.softmax(model(data), dim=1)
+        if isinstance(model, list):
+            feat = model[0](data)
+            out = F.softmax(model[1](feat), dim=1)
+        else:
+            out = F.softmax(model(data), dim=1)
         out = out.cpu().data.numpy()[0][1]
         output.append(out)
-    return np.mean(output)
+    #return np.mean(output)
+    f = []
+    for item in output:
+        if item>0.5:
+            f.append(1)
+        else:
+            f.append(0)
+    return np.mean(f)
 
 def main(args):
     input_img = args.input_img
@@ -222,7 +275,8 @@ def main(args):
 
     # load model
     factor = 'A'
-    ensemble_model = load_ensemble_model(factor, device)
+    #ensemble_model = load_ensemble_vggfacenet(factor, device)
+    ensemble_model = load_ensemble_shufflenet(factor, device)
 
     # crop face from input image
     crop_face_file = crop_face(input_img, output_dir, min_face_size,
@@ -254,11 +308,11 @@ def parse_arguments(argv):
                         help='Image size in pixels (224 by default).')
     parser.add_argument('--min_face_size',
                         type=int,
-                        default=20,
-                        help='Minimum face size in pixels (35 by default).')
+                        default=50,
+                        help='Minimum face size in pixels (50 by default).')
     parser.add_argument('--scalar',
                         type=float,
-                        default=1.4,
+                        default=1.2,
                         help='expanding scaler for the bounding box (1.4 by default).')
     parser.add_argument('--mode', default='cpu', type=str,
                         help='cpu or gpu mode')
@@ -291,6 +345,6 @@ def batch_test():
 
 
 if __name__ == '__main__':
-    #main(parse_arguments(sys.argv[1:]))
-    batch_test()
+    main(parse_arguments(sys.argv[1:]))
+    #batch_test()
 
