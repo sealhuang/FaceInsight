@@ -42,7 +42,7 @@ class clsNet2(nn.Module):
 
     def forward(self, x):
         """Pass the input tensor through each of our operations."""
-        cosine = F.linear(x, F.normalize(self.weight))
+        cosine = F.linear(F.normalize(x), F.normalize(self.weight))
         return cosine
 
 def get_img_stats(csv_file, face_dir, batch_size, num_workers, pin_memory):
@@ -283,18 +283,19 @@ def train_ensemble_model_sugar(factor, random_seed):
         writer = SummaryWriter()
         optimizer = optim.SGD([
                         {'params': model_backbone.parameters(),
-                         'weight_decay': 5e-5},
+                         'weight_decay': 1e-5},
                         {'params': classifier.parameters(),
-                         'weight_decay': 5e-8}
-                        ], lr=0.001, momentum=0.9)
-        scheduler = optim.lr_scheduler.StepLR(optimizer,step_size=15,gamma=0.1)
+                         'weight_decay': 1e-9,
+                         'lr': 0.01},
+                        ], lr=0.005, momentum=0.9)
+        scheduler = optim.lr_scheduler.StepLR(optimizer,step_size=25,gamma=0.1)
         criterion = nn.CrossEntropyLoss(reduction='mean')
 
         max_patience = 15
         patience_count = 0
         max_acc = 0
         test_acc = []
-        max_epoch = 40
+        max_epoch = 50
         for epoch in range(1, max_epoch+1):
             scheduler.step()
             train(model_backbone, classifier, criterion, device, train_loader,
