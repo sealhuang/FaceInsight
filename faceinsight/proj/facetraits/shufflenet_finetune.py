@@ -45,6 +45,18 @@ class clsNet2(nn.Module):
         cosine = F.linear(x, F.normalize(self.weight))
         return cosine
 
+class clsNet3(nn.Module):
+    def __init__(self):
+        super(clsNet2, self).__init__()
+        self.weight = nn.Parameter(torch.FloatTensor(1, 512))
+        self.weight.data.uniform_(-1, 1).renorm_(2, 0, 1e-5).mul_(1e5)
+
+    def forward(self, x):
+        """Pass the input tensor through each of our operations."""
+        cosine = F.linear(x, F.normalize(self.weight))
+        return cosine
+
+
 def get_img_stats(csv_file, face_dir, batch_size, num_workers, pin_memory):
     """Get mean and std. of the images."""
     ds = MBTIFaceDataset(csv_file, face_dir, 'EI', transform=transforms.ToTensor())
@@ -277,7 +289,8 @@ def train_ensemble_model_sugar(factor, random_seed):
                                     map_location=lambda storage, loc: storage))
         model_backbone = model_backbone.to(device)
         #classifier = clsNet1(2).to(device)
-        classifier = clsNet2(2).to(device)
+        #classifier = clsNet2(2).to(device)
+        classifier = clsNet3().to(device)
 
         # summary writer config
         writer = SummaryWriter()
@@ -288,7 +301,8 @@ def train_ensemble_model_sugar(factor, random_seed):
                          'weight_decay': 5e-8}
                         ], lr=0.001, momentum=0.9)
         scheduler = optim.lr_scheduler.StepLR(optimizer,step_size=15,gamma=0.1)
-        criterion = nn.CrossEntropyLoss(reduction='mean')
+        #criterion = nn.CrossEntropyLoss(reduction='mean')
+        criterion = nn.BCEWithLogitsLoss(reduction='mean')
 
         max_patience = 15
         patience_count = 0
