@@ -34,18 +34,20 @@ class clsNet1(nn.Module):
 class ShuffleNetClfier(nn.Module):
     def __init__(self, class_num):
         super(ShuffleNetClfier, self).__init__()
-        self.fc1 = nn.Linear(512, class_num, bias=False)
+        self.weight = nn.Parameter(torch.FloatTensor(class_num, 512))
 
     def forward(self, x):
         """Pass the input tensor through each of our operations."""
-        x = self.fc1(x)
+        x = F.linear(F.normalize(x), F.normalize(self.weight))
         return x
 
 
 def load_img(img_file):
     # define transforms
-    normalize = transforms.Normalize(mean=[0.518, 0.493, 0.506],
-                                     std=[0.270, 0.254, 0.277])
+    #normalize = transforms.Normalize(mean=[0.518, 0.493, 0.506],
+    #                                 std=[0.270, 0.254, 0.277])
+    normalize = transforms.Normalize(mean=[0.5, 0.5, 0.5],
+                                     std=[0.5, 0.5, 0.5])
     test_transform = transforms.Compose([transforms.Resize(250),
                                          transforms.CenterCrop(224),
                                          transforms.ToTensor(),
@@ -255,7 +257,9 @@ def face_eval(face_file, ensemble_model, device):
             out = F.softmax(model(data), dim=1)
         out = out.cpu().data.numpy()[0][1]
         output.append(out)
-    return np.mean(output)
+    print(output)
+    #return np.mean(output)
+    return np.median(output)
 
 def main(args):
     input_img = args.input_img
