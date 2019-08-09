@@ -20,7 +20,6 @@ from sklearn.metrics import confusion_matrix
 from tensorboardX import SummaryWriter
 
 from faceinsight.models.shufflenet_v2 import ShuffleNetV2
-#from shufflenet_v2 import ShuffleNetV2
 from bnuclfdataset import PF16FaceDataset
 
 
@@ -45,34 +44,6 @@ class clsNet2(nn.Module):
         cosine = F.linear(F.normalize(x), F.normalize(self.weight))
         return cosine
 
-def get_img_stats(csv_file, face_dir, batch_size, num_workers, pin_memory):
-    """Get mean and std. of the images."""
-    ds = MBTIFaceDataset(csv_file, face_dir, 'EI', transform=transforms.ToTensor())
-    ds_loader = torch.utils.data.DataLoader(ds,
-                                            batch_size=batch_size,
-                                            num_workers=num_workers,
-                                            pin_memory=pin_memory,
-                                            shuffle=False)
-
-    mean = 0.
-    std = 0.
-    nb_samples = 0
-    nb_batches = 0
-    for data, _ in ds_loader:
-        batch_samples = data.size(0)
-        data = data.view(batch_samples, data.size(1), -1)
-        mean += data.mean(2).sum(0)
-        std += data.std(2).sum(0)
-        nb_samples += batch_samples
-        nb_batches += 1
-    print('%s batches in total'%(nb_batches))
-    print('%s samples in total'%(nb_samples))
-
-    mean /= nb_samples
-    std /= nb_samples
-    print('mean and std. of the images: %s, %s'%(mean.numpy(), std.numpy()))
-
-    return mean, std
 
 def load_data(factor, data_dir, sample_size_per_class,
               train_sampler, test_sampler, batch_size, shuffle=True,
@@ -96,22 +67,12 @@ def load_data(factor, data_dir, sample_size_per_class,
     - test_loader: test set iterator.
 
     """
-    #csv_file = os.path.join(data_dir, 'mbti_factors.csv')
     csv_file = os.path.join(data_dir, 'sel_16pf_factors.csv')
     face_dir = os.path.join(data_dir, 'bnu_aligned_faces')
-
-    # get image stats
-    #m, s = get_img_stats(csv_file, face_dir, batch_size=batch_size, 
-    #                     num_workers=num_workers, pin_memory=pin_memory)
-    
+ 
     # define transforms
-    #normalize = transforms.Normalize(mean=[0.518, 0.493, 0.506],
-    #                                 std=[0.270, 0.254, 0.277])
     normalize = transforms.Normalize(mean=[0.5, 0.5, 0.5],
                                      std=[0.5, 0.5, 0.5])
-    #normalize = transforms.Normalize(mean=(0.507395516207, ),
-    #                                 std=(0.255128989415, ))
-    #transforms.RandomResizedCrop(224, scale=(0.7, 0.9), ratio=(1.0, 1.0)),
     train_transform = transforms.Compose([transforms.Resize(250),
                                           transforms.RandomCrop(224),
                                           transforms.ColorJitter(brightness=.05,
@@ -125,28 +86,6 @@ def load_data(factor, data_dir, sample_size_per_class,
                                          normalize])
 
     # load the dataset
-    #train_dataset = MBTIFaceDataset(csv_file, face_dir, 'JP',
-    #                                gender_filter=None,
-    #                                factor_range=[(0, 11), (18, 23)],
-    #                                range2group=True,
-    #                                gender2group=False,
-    #                                transform=train_transform)
-    #test_dataset = MBTIFaceDataset(csv_file, face_dir, 'JP',
-    #                               gender_filter=None,
-    #                               factor_range=[(0, 11), (18, 23)],
-    #                               range2group=True,
-    #                               gender2group=False,
-    #                               transform=test_transform)
-    #train_dataset = MBTIFaceDataset(csv_file, face_dir, 'JP',
-    #                                sample_size_per_class,
-    #                                class_target=True,
-    #                                gender_filter='female',
-    #                                transform=train_transform)
-    #test_dataset = MBTIFaceDataset(csv_file, face_dir, 'JP',
-    #                               sample_size_per_class,
-    #                               class_target=True,
-    #                               gender_filter='female',
-    #                               transform=train_transform)
     train_dataset = PF16FaceDataset(csv_file, face_dir, factor,
                                     sample_size_per_class,
                                     class_target=True,
@@ -181,7 +120,6 @@ def train(backbone, classifier, criterion, device, train_loader, optimizer,
         features = backbone(data)
         output = classifier(features)
         loss = criterion(output, target)
-        #loss = F.nll_loss(output, target)
         loss.backward()
         optimizer.step()
         writer.add_scalar('data/training-loss', loss,
@@ -199,25 +137,27 @@ def test(backbone, classifier, criterion, device, test_loader, epoch, writer):
     correct = 0
     all_pred = []
     all_true = []
+    all_p = []
     with torch.no_grad():
         for data, target in test_loader:
             data, target = data.to(device), target.to(device)
             features = backbone(data)
             output = classifier(features)
             # sum up batch loss
-            #test_loss += F.nll_loss(output, target, reduction='sum').item()
             part_loss = criterion(output, target).item()
             test_loss += part_loss * data.size(0)
             # get the index of the max log-probability
             pred = output.argmax(dim=1, keepdim=False)
-            #correct += pred.eq(target.view_as(pred)).sum().item()
-            correct += pred.eq(target).sum().item()
+            correct += pred.long().eq(target).sum().item()
             all_pred.append(pred.cpu().data.numpy())
             all_true.append(target.cpu().data.numpy())
+            p = torch.softmax(output, dim=1)
+            all_p.append(p.cpu().data.numpy()[:, 0])
     
     # plot model parameter hist
     for name, param in classifier.named_parameters():
         writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch)
+    writer.add_histogram('output-p', np.concatenate(tuple(all_p)), epoch)
     #params = classifier.state_dict()
     #print(params.keys())
     #x = vutils.make_grid(params['base_model.0.weight'].clone().cpu().data,
@@ -285,10 +225,10 @@ def train_ensemble_model_sugar(factor, random_seed):
                         {'params': model_backbone.parameters(),
                          'weight_decay': 1e-5},
                         {'params': classifier.parameters(),
-                         'weight_decay': 1e-9,
+                         'weight_decay': 5e-8,
                          'lr': 0.01},
                         ], lr=0.005, momentum=0.9)
-        scheduler = optim.lr_scheduler.StepLR(optimizer,step_size=25,gamma=0.1)
+        scheduler = optim.lr_scheduler.StepLR(optimizer,step_size=15,gamma=0.1)
         criterion = nn.CrossEntropyLoss(reduction='mean')
 
         max_patience = 15
@@ -307,9 +247,9 @@ def train_ensemble_model_sugar(factor, random_seed):
                 patience_count = 0
                 if acc>=max_acc:
                     max_acc = acc
-                    sel_epoch = epoch
-                    best_backbone = copy.deepcopy(model_backbone)
-                    best_classifier = copy.deepcopy(classifier)
+                sel_epoch = epoch
+                best_backbone = copy.deepcopy(model_backbone)
+                best_classifier = copy.deepcopy(classifier)
             else:
                 patience_count += 1
             # save model
@@ -328,48 +268,7 @@ def train_ensemble_model_sugar(factor, random_seed):
 
 def train_ensemble_model():
     """Main function."""
-    # hyper-parameters
-    # A:  backbone: weight_decay=5e-5, classifier: weight decay=1e-8,
-    #     lr=0.005, gamma=0.1
-    # B:  backbone: weight_decay=1e-5, classifier: weight decay=5e-9,
-    #     lr=0.005, gamma=0.1
-    # C:  backbone: weight_decay=1e-5, classifier: weight decay=5e-9,
-    #     lr=0.005, gamma=0.1
-    # E:  backbone: weight_decay=1e-5, classifier: weight decay=5e-8,
-    #     lr=0.005, gamma=0.1
-    # F:  backbone: weight_decay=1e-5, classifier: weight decay=5e-8,
-    #     lr=0.005, gamma=0.1
-    # G:  backbone: weight_decay=1e-5, classifier: weight decay=5e-8,
-    #     lr=0.005, gamma=0.1
-    # H:  backbone: weight_decay=1e-5, classifier: weight decay=1e-8,
-    #     lr=0.003, gamma=0.1
-    # I:  backbone: weight_decay=1e-5, classifier: weight decay=5e-8,
-    #     lr=0.005, gamma=0.1
-    # L:  backbone: weight_decay=5e-5, classifier: weight decay=5e-8,
-    #     lr=0.003, gamma=0.1
-    # M:  backbone: weight_decay=1e-5, classifier: weight decay=5e-8,
-    #     lr=0.005, gamma=0.1
-    # N:  backbone: weight_decay=1e-5, classifier: weight decay=1e-8,
-    #     lr=0.003, gamma=0.1
-    # O:  backbone: weight_decay=1e-5, classifier: weight decay=5e-8,
-    #     lr=0.005, gamma=0.1
-    # Q1: backbone: weight_decay=1e-5, classifier: weight decay=5e-9,
-    #     lr=0.005, gamma=0.1
-    # Q2: backbone: weight_decay=1e-5, classifier: weight decay=5e-8,
-    #     lr=0.005, gamma=0.1
-    # Q3: backbone: weight_decay=5e-5, classifier: weight decay=5e-8,
-    #     lr=0.003, gamma=0.1
-    # Q4: backbone: weight_decay=1e-5, classifier: weight decay=5e-8,
-    #     lr=0.005, gamma=0.1
-    # X1: backbone: weight_decay=1e-5, classifier: weight decay=1e-10,
-    #     lr=0.005, gamma=0.1
-    # X2: backbone: weight_decay=5e-5, classifier: weight decay=1e-10,
-    #     lr=0.005, gamma=0.1
-    # X3: backbone: weight_decay=5e-5, classifier: weight decay=1e-9,
-    #     lr=0.005, gamma=0.1
-    # X4: backbone: weight_decay=1e-5, classifier: weight decay=5e-8,
-    #     lr=0.005, gamma=0.1
-    factor_list = ['A']
+    factor_list = ['N', 'O', 'Q1', 'Q2', 'Q3', 'Q4', 'X1', 'X2', 'X3', 'X4']
     seed = 10
     for f in factor_list:
         print('Factor %s'%(f))
