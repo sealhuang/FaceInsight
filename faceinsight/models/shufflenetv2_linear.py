@@ -174,12 +174,16 @@ class ShuffleNetV2(nn.Module):
         #                                   kernel=(7, 7),
         #                                   stride=(1, 1),
         #                                   groups=self.stage_out_channels[-1])
-        self.fc = nn.Linear(self.stage_out_channels[-1]*7*7,
-                            self.stage_out_channels[-1],
-                            bias=False)
+        self.conv_extra = nn.Sequential(
+                            nn.Conv2d(self.stage_out_channels[-1],
+                                      self.stage_out_channels[-1],
+                                      3, 2, 0, bias=False),
+                            nn.BatchNorm2d(self.stage_out_channels[-1]),
+                            nn.ReLU(inplace=True)
+                            )
 
         # building classifier
-        self.classifier = nn.Sequential(nn.Linear(self.stage_out_channels[-1],
+        self.classifier = nn.Sequential(nn.Linear(self.stage_out_channels[-1]*9,
                                                   n_class,
                                                   bias=False))
         self.bn = nn.BatchNorm1d(n_class)
@@ -192,11 +196,10 @@ class ShuffleNetV2(nn.Module):
         #x = self.globalpool(x)
         #x = self.maxpool2(x)
         #x = self.global_weight(x)
-        x = x.view(-1, self.stage_out_channels[-1]*7*7)
-        x = F.relu(self.fc(x))
+        x = self.conv_extra(x)
+        x = x.view(-1, self.stage_out_channels[-1]*9)
         x = self.classifier(x)
         x = self.bn(x)
         x = F.normalize(x)
         return x
 
- 
