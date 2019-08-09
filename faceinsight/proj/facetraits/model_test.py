@@ -227,13 +227,12 @@ def load_ensemble_vggfacenet(factor, device):
 def load_ensemble_shufflenet(factor, device):
     ensemble_models = []
     for i in range(5):
+        model_dir = './16pfmodels_shufflenet_clsNet2'
         model_file_prefix = 'finetuned_shufflenet4%s_'%(factor.lower())
-        file_list = os.listdir('./16pfmodels_shufflenet')
-        backbone_file = [os.path.join('./16pfmodels_shufflenet', item)
-                    for item in file_list
+        file_list = os.listdir(model_dir)
+        backbone_file = [os.path.join(model_dir, item) for item in file_list
                     if item.startswith(model_file_prefix+'backbone_f%s'%(i))][0]
-        clfier_file = [os.path.join('./16pfmodels_shufflenet', item)
-                    for item in file_list
+        clfier_file = [os.path.join(model_dir, item) for item in file_list
                     if item.startswith(model_file_prefix+'clfier_f%s'%(i))][0]
         model = load_shufflenet(backbone_file, clfier_file, device)
         ensemble_models.append(model)
