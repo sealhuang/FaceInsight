@@ -256,7 +256,7 @@ def face_eval(face_file, ensemble_model, device):
             out = F.softmax(model(data), dim=1)
         out = out.cpu().data.numpy()[0][1]
         output.append(out)
-    print(output)
+    #print(output)
     #return np.mean(output)
     return np.median(output)
 

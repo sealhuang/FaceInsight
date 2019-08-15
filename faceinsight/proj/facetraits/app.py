@@ -10,7 +10,7 @@ from model_test import crop_face
 from model_test import align_face
 from model_test import face_eval
 
-
+# general config
 UPLOAD_FOLDER = os.path.expanduser('~/Downloads/uploads')
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER, mode=0o755)
@@ -18,9 +18,27 @@ ALLOW_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
 DEVICE = 'cpu'
 
 # load model
-FACTOR = 'A'
+FACTORS = {'A': '乐群性',
+           'B': '聪慧性',
+           'C': '稳定性',
+           'E': '恃强性',
+           'F': '兴奋性',
+           'G': '有恒性',
+           'H': '敢为性',
+           'I': '敏感性',
+           'L': '怀疑性',
+           'M': '幻想性',
+           'N': '世故性',
+           'O': '忧虑性',
+           'Q1': '实验性',
+           'Q2': '独立性',
+           'Q3': '自律性',
+           'Q4': '紧张性'}
+ensemble_models = {}
+for factor in FACTORS:
+    ensemble_models[factor] = load_ensemble_shufflenet(factor, DEVICE)
+#FACTOR = 'A'
 #ensemble_model = load_ensemble_model(FACTOR, DEVICE)
-ensemble_model = load_ensemble_shufflenet(FACTOR, DEVICE)
 
 # initialize the app
 app = Flask(__name__, template_folder='./')
@@ -61,8 +79,18 @@ def upload_file():
             if crop_face_file:
                 aligned_face_file = align_face(crop_face_file, 224, 1.4)
                 if aligned_face_file:
-                    score = face_eval(aligned_face_file, ensemble_model, DEVICE)
-                    return render_template('result.html', pred=score,
+                    scores = {}
+                    for factor in FACTORS:
+                        scores[factor] = face_eval(aligned_face_file,
+                                                  ensemble_models[factor],
+                                                  DEVICE)
+                    #score = face_eval(aligned_face_file, ensemble_model, DEVICE)
+                    print(scores)
+                    for key in scores:
+                        scores[key] = (scores[key]-0.5)*5/1.5+0.5
+                    return render_template('result.html',
+                                           labels=FACTORS,
+                                           scores=scores,
                                            imgpath=url_for('uploaded_file',
                                 filename=os.path.basename(aligned_face_file)))
             else:

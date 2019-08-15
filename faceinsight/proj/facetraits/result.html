@@ -8,7 +8,9 @@
 	-->
     </head>
     <body>
-        <h3> Prediction: {{ pred }} </h3>
+    {% for key in scores %}
+    <h3> {{ labels[key] }}: {{ scores[key] }} </h3>
+    {% endfor %}
         <br><br>
         <img src={{imgpath}}>
         <script></script>
