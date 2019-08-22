@@ -11,7 +11,7 @@ import torchvision.datasets as datasets
 import torchvision.utils as vutils
 from tensorboardX import SummaryWriter
 
-from faceinsight.models.shufflenet_v2 import ShuffleNetV2
+from faceinsight.models.shufflefacenet import ShuffleNetV2
 from faceinsight.models.mobilefacenet import MobileFaceNet
 from faceinsight.head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
 from faceinsight.loss.focal import FocalLoss
@@ -107,12 +107,6 @@ if __name__ == '__main__':
                                                pin_memory=PIN_MEMORY,
                                                num_workers=NUM_WORKERS,
                                                drop_last=DROP_LAST)
-    #train_loader = torch.utils.data.DataLoader(dataset_train,
-    #                                           batch_size=BATCH_SIZE,
-    #                                           shuffle=True,
-    #                                           pin_memory=PIN_MEMORY,
-    #                                           num_workers=NUM_WORKERS,
-    #                                           drop_last=DROP_LAST)
 
     NUM_CLASS = len(train_loader.dataset.classes)
     print("Number of Training Classes: {}".format(NUM_CLASS))
@@ -151,7 +145,7 @@ if __name__ == '__main__':
 
     HEAD_DICT = {'ArcFace': ArcFace(in_features=EMBEDDING_SIZE,
                                     out_features=NUM_CLASS,
-                                    m=0.2,
+                                    m=0.25,
                                     device_id=GPU_ID),
                  'CosFace': CosFace(in_features=EMBEDDING_SIZE,
                                     out_features=NUM_CLASS,
@@ -179,7 +173,7 @@ if __name__ == '__main__':
     # define optimizer
     # separate batch_norm parameters from others; do not do weight decay for
     # batch_norm parameters to improve the generalizability
-    # For ShuffleNet
+    # For ShuffleFaceNet
     ignored_params = list(map(id, BACKBONE.classifier.parameters()))
     # For MobileFaceNet
     #ignored_params = list(map(id, BACKBONE.linear.parameters()))

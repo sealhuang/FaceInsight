@@ -192,7 +192,7 @@ class ShuffleNetV2(nn.Module):
         x = x.view(-1, self.stage_out_channels[-1])
         x = self.classifier(x)
         x = self.bn(x)
-        x = F.normalize(x)
+        #x = F.normalize(x)
         return x
 
  
