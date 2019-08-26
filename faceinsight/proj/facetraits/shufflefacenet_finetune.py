@@ -19,7 +19,7 @@ from torch.utils.data.sampler import SubsetRandomSampler
 from sklearn.metrics import confusion_matrix
 from tensorboardX import SummaryWriter
 
-from faceinsight.models.shufflenet_v2 import ShuffleNetV2
+from faceinsight.models.shufflefacenet import ShuffleNetV2
 from bnuclfdataset import PF16FaceDataset
 
 
@@ -212,22 +212,23 @@ def train_ensemble_model_sugar(factor, random_seed):
         # model training and eval
         model_backbone = ShuffleNetV2(n_class=512, input_size=224,
                                       width_mult=1.0)
-        backbone_file = './shufflenetv2_512/Backbone_shufflenet_v2_x1_0_Epoch_40_checkpoint.pth'
+        backbone_file = './shufflefacenet_512/Backbone_shufflenet_v2_x1_0_Epoch_22_checkpoint.pth'
         model_backbone.load_state_dict(torch.load(backbone_file,
                                     map_location=lambda storage, loc: storage))
         model_backbone = model_backbone.to(device)
-        #classifier = clsNet1(2).to(device)
-        classifier = clsNet2(2).to(device)
+        classifier = clsNet1(2).to(device)
+        #classifier = clsNet2(2).to(device)
 
         # summary writer config
         writer = SummaryWriter()
         optimizer = optim.SGD([
                         {'params': model_backbone.parameters(),
-                         'weight_decay': 1e-5},
+                         'weight_decay': 1e-8},
                         {'params': classifier.parameters(),
-                         'weight_decay': 5e-8,
-                         'lr': 0.01},
-                        ], lr=0.005, momentum=0.9)
+                         'weight_decay': 1e-5},
+                        ],
+                        lr=0.0005,
+                        momentum=0.9)
         scheduler = optim.lr_scheduler.StepLR(optimizer,step_size=15,gamma=0.1)
         criterion = nn.CrossEntropyLoss(reduction='mean')
 
@@ -268,16 +269,23 @@ def train_ensemble_model_sugar(factor, random_seed):
 
 def train_ensemble_model():
     """Main function."""
-    factor_list = ['N', 'O', 'Q1', 'Q2', 'Q3', 'Q4', 'X1', 'X2', 'X3', 'X4']
+    # weight decay parameters
+    # L: backbone = 1e-8, classifier = 1e-5
+    # others: backbone = 5e-6, classifier = 5e-5, lr = 0.0005
+    factor_list = ['X4']
+    #factor_list = ['B', 'C', 'E', 'F', 'G', 'H', 'I',
+    #               'M', 'N', 'O',
+    #               'Q1', 'Q2', 'Q3', 'Q4',
+    #               'X1', 'X2', 'X3', 'X4']
     seed = 10
     for f in factor_list:
         print('Factor %s'%(f))
         train_ensemble_model_sugar(f, seed)
         # rename log files
         os.system(' '.join(['mv', 'test_acc.csv',
-                        'finetuned_shufflenet_acc_%s_1500_cv.csv'%(f.lower())]))
+                    'finetuned_shufflefacenet_acc_%s_1500_cv.csv'%(f.lower())]))
         os.system(' '.join(['mv', 'runs',
-                            'finetuned_shufflenet_log_%s_1500_cv'%(f.lower())]))
+                    'finetuned_shufflefacenet_log_%s_1500_cv'%(f.lower())]))
     
 
 if __name__=='__main__':

@@ -6,6 +6,7 @@ from werkzeug.utils import secure_filename
 from flask import request, render_template
 from model_test import load_ensemble_vggfacenet
 from model_test import load_ensemble_shufflenet
+from model_test import load_ensemble_shufflefacenet
 from model_test import crop_face
 from model_test import align_face
 from model_test import face_eval
@@ -18,25 +19,29 @@ ALLOW_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
 DEVICE = 'cpu'
 
 # load model
-FACTORS = {'A': '乐群性',
+FACTORS = {'A': '乐群性*',
            'B': '聪慧性',
            'C': '稳定性',
            'E': '恃强性',
-           'F': '兴奋性',
+           'F': '兴奋性*',
            'G': '有恒性',
-           'H': '敢为性',
-           'I': '敏感性',
-           'L': '怀疑性',
+           'H': '敢为性*',
+           'I': '敏感性*',
+           'L': '怀疑性*',
            'M': '幻想性',
-           'N': '世故性',
+           'N': '世故性*',
            'O': '忧虑性',
            'Q1': '实验性',
-           'Q2': '独立性',
-           'Q3': '自律性',
+           'Q2': '独立性*',
+           'Q3': '自律性*',
            'Q4': '紧张性'}
+
+#FACTORS = {'A': '乐群性'}
+
 ensemble_models = {}
 for factor in FACTORS:
-    ensemble_models[factor] = load_ensemble_shufflenet(factor, DEVICE)
+    #ensemble_models[factor] = load_ensemble_shufflenet(factor, DEVICE)
+    ensemble_models[factor] = load_ensemble_shufflefacenet(factor, DEVICE)
 #FACTOR = 'A'
 #ensemble_model = load_ensemble_model(FACTOR, DEVICE)
 
@@ -86,8 +91,8 @@ def upload_file():
                                                   DEVICE)
                     #score = face_eval(aligned_face_file, ensemble_model, DEVICE)
                     print(scores)
-                    for key in scores:
-                        scores[key] = (scores[key]-0.5)*5/1.5+0.5
+                    #for key in scores:
+                    #    scores[key] = (scores[key]-0.5)*5/1.5+0.5
                     return render_template('result.html',
                                            labels=FACTORS,
                                            scores=scores,
@@ -111,5 +116,5 @@ def upload_file():
 #--------- RUN WEB APP SERVER ------------#
 # Start the app server on port 80
 # (The default website port)
-app.run(host='127.0.0.1', port=5000, debug=True)
-#app.run(host='192.168.0.152', port=5000, debug=True)
+#app.run(host='127.0.0.1', port=5000, debug=True)
+app.run(host='192.168.1.10', port=5000, debug=True)

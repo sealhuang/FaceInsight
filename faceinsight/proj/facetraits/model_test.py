@@ -13,6 +13,7 @@ from torchvision import transforms
 import torchvision.utils as vutils
 from faceinsight.models import vggface
 from faceinsight.models.shufflenet_v2 import ShuffleNetV2
+from faceinsight.models.shufflefacenet import ShuffleNetV2 as ShuffleFaceNet
 from faceinsight.detection import detect_faces
 from faceinsight.detection.align_trans import get_reference_facial_points
 from faceinsight.detection.align_trans import warp_and_crop_face
@@ -39,6 +40,16 @@ class ShuffleNetClfier(nn.Module):
     def forward(self, x):
         """Pass the input tensor through each of our operations."""
         x = F.linear(F.normalize(x), F.normalize(self.weight))
+        return x
+
+class ShuffleFaceNetClfier(nn.Module):
+    def __init__(self, class_num):
+        super(ShuffleFaceNetClfier, self).__init__()
+        self.fc1 = nn.Linear(512, class_num, bias=False)
+
+    def forward(self, x):
+        """Pass the input tensor through each of our operations."""
+        x = self.fc1(x)
         return x
 
 
@@ -73,6 +84,21 @@ def load_shufflenet(backbone_file, clfier_file, device):
     model_backbone.load_state_dict(torch.load(backbone_file,
                                      map_location=lambda storage, loc: storage))
     classifier = ShuffleNetClfier(2)
+    classifier.load_state_dict(torch.load(clfier_file,
+                                     map_location=lambda storage, loc: storage))
+    if device=='gpu':
+        model_backbone = model_backbone.cuda()
+        classifier = classifier.cuda()
+    model_backbone.eval()
+    classifier.eval()
+    return [model_backbone, classifier]
+
+def load_shufflefacenet(backbone_file, clfier_file, device):
+    model_backbone = ShuffleFaceNet(n_class=512, input_size=224,
+                                    width_mult=1.0)
+    model_backbone.load_state_dict(torch.load(backbone_file,
+                                     map_location=lambda storage, loc: storage))
+    classifier = ShuffleFaceNetClfier(2)
     classifier.load_state_dict(torch.load(clfier_file,
                                      map_location=lambda storage, loc: storage))
     if device=='gpu':
@@ -239,6 +265,21 @@ def load_ensemble_shufflenet(factor, device):
 
     return ensemble_models
 
+def load_ensemble_shufflefacenet(factor, device):
+    ensemble_models = []
+    for i in range(5):
+        model_dir = './16pfmodels_shufflefacenet'
+        model_file_prefix = 'finetuned_shufflenet4%s_'%(factor.lower())
+        file_list = os.listdir(model_dir)
+        backbone_file = [os.path.join(model_dir, item) for item in file_list
+                    if item.startswith(model_file_prefix+'backbone_f%s'%(i))][0]
+        clfier_file = [os.path.join(model_dir, item) for item in file_list
+                    if item.startswith(model_file_prefix+'clfier_f%s'%(i))][0]
+        model = load_shufflefacenet(backbone_file, clfier_file, device)
+        ensemble_models.append(model)
+
+    return ensemble_models
+
 def face_eval(face_file, ensemble_model, device):
     # load image
     data = load_img(face_file)
@@ -256,7 +297,7 @@ def face_eval(face_file, ensemble_model, device):
             out = F.softmax(model(data), dim=1)
         out = out.cpu().data.numpy()[0][1]
         output.append(out)
-    #print(output)
+    print(output)
     #return np.mean(output)
     return np.median(output)
 
