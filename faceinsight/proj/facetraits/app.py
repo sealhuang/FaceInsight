@@ -1,9 +1,13 @@
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 
 import os
+import time
+
+import plotly.graph_objects as go
 from flask import Flask, flash, request, redirect, url_for, send_from_directory
-from werkzeug.utils import secure_filename
 from flask import request, render_template
+from werkzeug.utils import secure_filename
+
 from model_test import load_ensemble_vggfacenet
 from model_test import load_ensemble_shufflenet
 from model_test import load_ensemble_shufflefacenet
@@ -16,7 +20,40 @@ UPLOAD_FOLDER = os.path.expanduser('~/Downloads/uploads')
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER, mode=0o755)
 ALLOW_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
-DEVICE = 'cpu'
+DEVICE_DET = 'cpu'
+DEVICE_CLS = 'gpu'
+
+def read_personality_info(info_file):
+    info = open(info_file).readlines()
+    info = [line.strip().split(':') for line in info]
+    info_dict = {}
+    for line in info:
+        info_dict[line[0]] = line[1]
+    return info_dict
+
+def radarplot(data_dict):
+    fig = go.Figure()
+    # plot personal radar
+    ks = [key for key in data_dict.keys()]
+    theta = [FACTORS[k] for k in ks]
+    r = [data_dict[k] for k in ks]
+    fig.add_trace(go.Scatterpolar(r=r, theta=theta, fill='toself'))
+    # plot reference radar
+    refr = [0.5]*(len(ks)+1)
+    fig.add_trace(go.Scatterpolar(r=refr, theta=theta+[theta[0]],
+                                  mode='lines',
+                                  line_color='peru',
+                                  opacity=0.7,
+                                  hoverinfo='none',
+                                  name='ref'))
+
+    fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0,1])),
+                      showlegend=False)
+    fig_json = fig.to_json()
+    return fig_json
+
+# load personality info
+info16 = read_personality_info('./personality16info.csv')
 
 # load model
 FACTORS = {'A': '乐群性*',
@@ -35,13 +72,12 @@ FACTORS = {'A': '乐群性*',
            'Q2': '独立性*',
            'Q3': '自律性*',
            'Q4': '紧张性'}
-
 #FACTORS = {'A': '乐群性'}
 
 ensemble_models = {}
 for factor in FACTORS:
     #ensemble_models[factor] = load_ensemble_shufflenet(factor, DEVICE)
-    ensemble_models[factor] = load_ensemble_shufflefacenet(factor, DEVICE)
+    ensemble_models[factor] = load_ensemble_shufflefacenet(factor, DEVICE_CLS)
 #FACTOR = 'A'
 #ensemble_model = load_ensemble_model(FACTOR, DEVICE)
 
@@ -73,14 +109,15 @@ def upload_file():
             return redirect(request.url)
         if f and allowed_file(f.filename):
             filename = secure_filename(f.filename)
+            filename = str(int(time.time())) +'.' + filename.split('.')[-1]
             saved_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             f.save(saved_path)
             #return redirect(url_for('uploaded_file', filename=filename))
             # eval
             crop_face_file = crop_face(saved_path, app.config['UPLOAD_FOLDER'],
-                                       20, 1.4, 224,
+                                       50, 1.4, 224,
                                        detect_multiple_faces=False,
-                                       device=DEVICE)
+                                       device=DEVICE_DET)
             if crop_face_file:
                 aligned_face_file = align_face(crop_face_file, 224, 1.4)
                 if aligned_face_file:
@@ -88,14 +125,21 @@ def upload_file():
                     for factor in FACTORS:
                         scores[factor] = face_eval(aligned_face_file,
                                                   ensemble_models[factor],
-                                                  DEVICE)
+                                                  DEVICE_CLS)
                     #score = face_eval(aligned_face_file, ensemble_model, DEVICE)
                     print(scores)
                     #for key in scores:
                     #    scores[key] = (scores[key]-0.5)*5/1.5+0.5
+                    #return render_template('result.html',
+                    #                       labels=FACTORS,
+                    #                       scores=scores,
+                    #                       imgpath=url_for('uploaded_file',
+                    #            filename=os.path.basename(aligned_face_file)))
+                    radar_json = radarplot(scores)
+                    #reftable_json = infotableplot(info16)
                     return render_template('result.html',
-                                           labels=FACTORS,
-                                           scores=scores,
+                                           plotly_data=radar_json,
+                                           info_dict=info16,
                                            imgpath=url_for('uploaded_file',
                                 filename=os.path.basename(aligned_face_file)))
             else:

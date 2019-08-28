@@ -7,6 +7,7 @@ __pycache__/
 .cache
 .DS_Store
 *~
+.swp
 
 # data files
 *.npy
