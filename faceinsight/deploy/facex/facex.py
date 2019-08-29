@@ -6,7 +6,8 @@ import time
 import numpy as np
 import torch
 import torch.nn.functional as F
-from joblib import Parallel, delayed
+#from joblib import Parallel, delayed
+from multiprocessing import Pool
 
 import plotly.graph_objects as go
 from flask import Flask, flash, request, redirect, url_for, send_from_directory
@@ -90,7 +91,8 @@ def predict_proxy(predictor, data):
 UPLOAD_FOLDER = os.path.expanduser('~/Downloads/uploads')
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER, mode=0o755)
-root_dir = '/home/huanglj/repo/FaceInsight/faceinsight'
+#root_dir = '/home/huanglj/repo/FaceInsight/faceinsight'
+root_dir = '/Users/sealhuang/repo/FaceInsight/faceinsight'
 model_dir = os.path.join(root_dir, 'proj', 'facetraits',
                          '16pfmodels_shufflefacenet')
 pf16info_file = os.path.join(root_dir, 'proj','facetraits',
@@ -129,6 +131,7 @@ for factor in FACTORS:
 app = Flask(__name__, template_folder='./')
 app.secret_key = "super secret key"
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+_pool = None
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
@@ -162,11 +165,14 @@ def upload_file():
                 aligned_face_file = align_face(crop_face_file, 224, 1.4)
                 if aligned_face_file:
                     face_data = load_img(aligned_face_file)
+                    # wrapper function for multiprocessing
+                    def predict_proxy(predictor):
+                        return predictor(face_data)
                     # eval
                     print('Start eval...')
                     scores = {}
-                    Parallel(n_jobs=4, backend='multiprocessing')(delayed(predict_proxy)(p, face_data)
-                                        for p in predictors)
+                    res_pool = _pool.map(predict_proxy, predictors)
+                    print(res_pool)
                     #for predictor in predictors:
                     #    res = predictor(face_data)
                     #    scores[res[0]] = res[1]
@@ -193,8 +199,16 @@ def upload_file():
     """
 
 
-#--------- RUN WEB APP SERVER ------------#
-# Start the app server on port 80
-# (The default website port)
-#app.run(host='127.0.0.1', port=5000, debug=True)
-app.run(host='192.168.1.10', port=5000, debug=True)
+if __name__=='__main__':
+    _pool = Pool(processes=2)
+    try:
+        #--------- RUN WEB APP SERVER ------------#
+        # Start the app server on port 80
+        # (The default website port)
+        app.run(host='127.0.0.1', port=5000, debug=True)
+        #app.run(host='192.168.1.10', port=5000, debug=True)
+    except KeyboardInterrupt:
+        _pool.close()
+        _pool.join()
+
+
