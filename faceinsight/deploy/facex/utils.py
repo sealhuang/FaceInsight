@@ -11,10 +11,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import transforms
 import torchvision.utils as vutils
-from faceinsight.models.shufflefacenet import ShuffleNetV2 as ShuffleFaceNet
+from faceinsight.models.shufflefacenet import ShuffleNetV2
 from faceinsight.detection import detect_faces
 from faceinsight.detection.align_trans import get_reference_facial_points
 from faceinsight.detection.align_trans import warp_and_crop_face
+
 
 class ShuffleFaceNetClfier(nn.Module):
     def __init__(self, class_num):
@@ -22,10 +23,32 @@ class ShuffleFaceNetClfier(nn.Module):
         self.fc1 = nn.Linear(512, class_num, bias=False)
 
     def forward(self, x):
-        """Pass the input tensor through each of our operations."""
+        
         x = self.fc1(x)
         return x
 
+class ShuffleFaceNet(nn.Module):
+    def __init__(self, backbone_file, clfier_file, device):
+        super(ShuffleFaceNet, self).__init__()
+        self.backbone = ShuffleNetV2(n_class=512, input_size=224,
+                                     width_mult=1.0)
+        self.classifier = ShuffleFaceNetClfier(2)
+        # load model weights
+        self.backbone.load_state_dict(torch.load(backbone_file,
+                                     map_location=lambda storage, loc: storage))
+        self.classifier.load_state_dict(torch.load(clfier_file,
+                                     map_location=lambda storage, loc: storage))
+        if device=='gpu':
+            self.backbone = self.backbone.cuda()
+            self.classifier = self.classifier.cuda()
+        self.backbone.eval()
+        self.classifier.eval()
+
+    def forward(self, x):
+        feat = self.backbone(x)
+        x = F.softmax(self.classifier(feat), dim=1)
+        return x
+ 
 
 def load_img(img_file):
     """Load face image."""
@@ -40,21 +63,6 @@ def load_img(img_file):
     img = Image.open(img_file).convert('RGB')
     img = test_transform(img)
     return img.unsqueeze(0)
-
-def load_shufflefacenet(backbone_file, clfier_file, device):
-    model_backbone = ShuffleFaceNet(n_class=512, input_size=224,
-                                    width_mult=1.0)
-    model_backbone.load_state_dict(torch.load(backbone_file,
-                                     map_location=lambda storage, loc: storage))
-    classifier = ShuffleFaceNetClfier(2)
-    classifier.load_state_dict(torch.load(clfier_file,
-                                     map_location=lambda storage, loc: storage))
-    if device=='gpu':
-        model_backbone = model_backbone.cuda()
-        classifier = classifier.cuda()
-    model_backbone.eval()
-    classifier.eval()
-    return [model_backbone, classifier]
 
 def get_square_crop_box(crop_box, box_scalar=1.0):
     """Get square crop box based on bounding box and the expanding scalar.

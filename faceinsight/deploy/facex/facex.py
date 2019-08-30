@@ -2,19 +2,14 @@
 
 import os
 import time
-
 import numpy as np
-import torch
-import torch.nn.functional as F
-#from joblib import Parallel, delayed
-from multiprocessing import Pool
 
 import plotly.graph_objects as go
 from flask import Flask, flash, request, redirect, url_for, send_from_directory
 from flask import request, render_template
 from werkzeug.utils import secure_filename
 
-from utils import load_shufflefacenet
+from utils import ShuffleFaceNet
 from utils import crop_face
 from utils import align_face
 from utils import load_img
@@ -26,32 +21,35 @@ def allowed_file(filename):
     return '.' in filename and \
             filename.rsplit('.', 1)[1].lower() in ALLOW_EXTENSIONS
 
-def gen_predictor(factor, model_dir, device):
-    """Generate predictor for each personality factor."""
-    # load models
-    models = []
-    for i in range(5):
-        model_file_prefix = 'finetuned_shufflenet4%s_'%(factor.lower())
-        file_list = os.listdir(model_dir)
-        backbone_file = [os.path.join(model_dir, item) for item in file_list
+def _eval(model, face_data):
+    out = model(face_data)
+    out = out.cpu().data.numpy()[0][1]
+    return out
+
+class Predictor():
+    def __init__(self, factor, model_dir, device):
+        self.factor_name = factor
+        self.device = device
+        # load models
+        self.models = []
+        for i in range(5):
+            model_file_prefix = 'finetuned_shufflenet4%s_'%(factor.lower())
+            file_list = os.listdir(model_dir)
+            backbone_file = [os.path.join(model_dir, item) for item in file_list
                     if item.startswith(model_file_prefix+'backbone_f%s'%(i))][0]
-        clfier_file = [os.path.join(model_dir, item) for item in file_list
+            clfier_file = [os.path.join(model_dir, item) for item in file_list
                     if item.startswith(model_file_prefix+'clfier_f%s'%(i))][0]
-        models.append(load_shufflefacenet(backbone_file, clfier_file, device))
+            self.models.append(ShuffleFaceNet(backbone_file, clfier_file,
+                                              device))
 
-    # define predictor
-    def predictor(face_data):
+    def run(self, face_data):
         outs = []
-        if device=='gpu':
+        if self.device=='gpu':
             face_data = face_data.cuda()
-        for model in models:
-            feat = model[0](face_data)
-            out = F.softmax(model[1](feat), dim=1)
-            out = out.cpu().data.numpy()[0][1]
-            outs.append(out)
-        return (factor, np.median(outs))
+        for model in self.models:
+            outs.append(_eval(model, face_data))
 
-    return predictor
+        return {self.factor_name: np.median(outs)}
 
 def read_personality_info(info_file):
     """Read personality info of 16PF"""
@@ -84,15 +82,13 @@ def radarplot(data_dict):
     fig_json = fig.to_json()
     return fig_json
 
-def predict_proxy(predictor, data):
-    return predictor(data)
 
 # general config
 UPLOAD_FOLDER = os.path.expanduser('~/Downloads/uploads')
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER, mode=0o755)
-#root_dir = '/home/huanglj/repo/FaceInsight/faceinsight'
-root_dir = '/Users/sealhuang/repo/FaceInsight/faceinsight'
+root_dir = '/home/huanglj/repo/FaceInsight/faceinsight'
+#root_dir = '/Users/sealhuang/repo/FaceInsight/faceinsight'
 model_dir = os.path.join(root_dir, 'proj', 'facetraits',
                          '16pfmodels_shufflefacenet')
 pf16info_file = os.path.join(root_dir, 'proj','facetraits',
@@ -122,16 +118,16 @@ FACTORS = {'A': '乐群性*',
            'Q4': '紧张性'}
 #FACTORS = {'A': '乐群性'}
 
+
 # load predictor for each personality factor
 predictors = []
 for factor in FACTORS:
-    predictors.append(gen_predictor(factor, model_dir, DEVICE_CLS))
+    predictors.append(Predictor(factor, model_dir, DEVICE_CLS))
 
 # initialize the app
 app = Flask(__name__, template_folder='./')
 app.secret_key = "super secret key"
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-_pool = None
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
@@ -151,6 +147,7 @@ def upload_file():
             flash('No selected file')
             return redirect(request.url)
         if f and allowed_file(f.filename):
+            start_time = time.time()
             filename = secure_filename(f.filename)
             filename = str(int(time.time())) +'.' + filename.split('.')[-1]
             saved_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
@@ -165,20 +162,13 @@ def upload_file():
                 aligned_face_file = align_face(crop_face_file, 224, 1.4)
                 if aligned_face_file:
                     face_data = load_img(aligned_face_file)
-                    # wrapper function for multiprocessing
-                    def predict_proxy(predictor):
-                        return predictor(face_data)
                     # eval
-                    print('Start eval...')
                     scores = {}
-                    res_pool = _pool.map(predict_proxy, predictors)
-                    print(res_pool)
-                    #for predictor in predictors:
-                    #    res = predictor(face_data)
-                    #    scores[res[0]] = res[1]
-                    print(scores)
+                    for predictor in predictors:
+                        res = predictor.run(face_data)
+                        scores.update(res)
+                    print(time.time()-start_time)
                     radar_json = radarplot(scores)
-                    #reftable_json = infotableplot(info16)
                     return render_template('result.html',
                                            plotly_data=radar_json,
                                            info_dict=info16,
@@ -200,15 +190,10 @@ def upload_file():
 
 
 if __name__=='__main__':
-    _pool = Pool(processes=2)
-    try:
-        #--------- RUN WEB APP SERVER ------------#
-        # Start the app server on port 80
-        # (The default website port)
-        app.run(host='127.0.0.1', port=5000, debug=True)
-        #app.run(host='192.168.1.10', port=5000, debug=True)
-    except KeyboardInterrupt:
-        _pool.close()
-        _pool.join()
+    # init process pool
+    #--------- RUN WEB APP SERVER ------------#
+    # Start the app server on port 5000
+    #app.run(host='127.0.0.1', port=5000, debug=True)
+    app.run(host='192.168.1.10', port=5000, debug=True)
 
 
