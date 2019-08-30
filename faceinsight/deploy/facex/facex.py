@@ -94,7 +94,7 @@ model_dir = os.path.join(root_dir, 'proj', 'facetraits',
 pf16info_file = os.path.join(root_dir, 'proj','facetraits',
                              'personality16info.csv') 
 DEVICE_DET = 'cpu'
-DEVICE_CLS = 'cpu'
+DEVICE_CLS = 'gpu'
 
 # load personality info
 info16 = read_personality_info(pf16info_file)
