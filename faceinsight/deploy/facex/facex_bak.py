@@ -3,20 +3,19 @@
 import os
 import time
 import numpy as np
-import requests
 
 import plotly.graph_objects as go
-from flask import Flask, request, redirect, url_for
-from flask import flash, render_template
+from flask import Flask, flash, request, redirect, url_for, send_from_directory
+from flask import request, render_template
 from werkzeug.utils import secure_filename
-
-from config import *
 
 from utils import ShuffleFaceNet
 from utils import crop_face
 from utils import align_face
 from utils import load_img
 
+
+ALLOW_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -84,45 +83,40 @@ def radarplot(data_dict):
     return fig_json
 
 
-# initialize the app
-app = Flask(__name__)
-#app.secret_key = "super secret key"
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
 # general config
+UPLOAD_FOLDER = os.path.expanduser('~/Downloads/uploads')
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER, mode=0o755)
-
-#root_dir = '/home/huanglj/repo/FaceInsight/faceinsight'
-root_dir = '/Users/sealhuang/repo/FaceInsight/faceinsight'
+root_dir = '/home/huanglj/repo/FaceInsight/faceinsight'
+#root_dir = '/Users/sealhuang/repo/FaceInsight/faceinsight'
 model_dir = os.path.join(root_dir, 'proj', 'facetraits',
                          '16pfmodels_shufflefacenet')
 pf16info_file = os.path.join(root_dir, 'proj','facetraits',
                              'personality16info.csv') 
 DEVICE_DET = 'cpu'
-DEVICE_CLS = 'cpu'
+DEVICE_CLS = 'gpu'
 
 # load personality info
 info16 = read_personality_info(pf16info_file)
 
 # get predictors
-#FACTORS = {'A': '乐群性*',
-#           'B': '聪慧性',
-#           'C': '稳定性',
-#           'E': '恃强性',
-#           'F': '兴奋性*',
-#           'G': '有恒性',
-#           'H': '敢为性*',
-#           'I': '敏感性*',
-#           'L': '怀疑性*',
-#           'M': '幻想性',
-#           'N': '世故性*',
-#           'O': '忧虑性',
-#           'Q1': '实验性',
-#           'Q2': '独立性*',
-#           'Q3': '自律性*',
-#           'Q4': '紧张性'}
-FACTORS = {'A': '乐群性'}
+FACTORS = {'A': '乐群性*',
+           'B': '聪慧性',
+           'C': '稳定性',
+           'E': '恃强性',
+           'F': '兴奋性*',
+           'G': '有恒性',
+           'H': '敢为性*',
+           'I': '敏感性*',
+           'L': '怀疑性*',
+           'M': '幻想性',
+           'N': '世故性*',
+           'O': '忧虑性',
+           'Q1': '实验性',
+           'Q2': '独立性*',
+           'Q3': '自律性*',
+           'Q4': '紧张性'}
+#FACTORS = {'A': '乐群性'}
 
 
 # load predictor for each personality factor
@@ -130,58 +124,16 @@ predictors = []
 for factor in FACTORS:
     predictors.append(Predictor(factor, model_dir, DEVICE_CLS))
 
+# initialize the app
+app = Flask(__name__, template_folder='./')
+app.secret_key = "super secret key"
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 @app.route('/', methods=['GET', 'POST'])
-def index():
-    if request.method=='POST':
-        # check if the post request has the file part
-        if 'file' not in request.files:
-            print('No file part')
-            return redirect(request.url)
-        # variables for request parameters
-        f = request.files['file']
-        # if user does not select file, browser also
-        # submit an empty part without filename
-        if f.filename=='':
-            print('No selected file')
-            return redirect(request.url)
-        if f and allowed_file(f.filename):
-            filename = secure_filename(f.filename)
-            filename = str(int(time.time())) +'.' + filename.split('.')[-1]
-            f.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            print('upload successful')
-            return redirect(url_for('inference', filename=filename))
-    return render_template('index.html')
-
-@app.route('/inference/<filename>')
-def inference(filename):
-    start_time = time.time()
-    
-    # 1. face detection
-    image = open(os.path.join(app.config['UPLOAD_FOLDER'],filename),'rb').read()
-    payload = {'image': image}
-    # submit the request
-    r = requests.post('http://127.0.0.1:5002/predict', files=payload).json()
-    # ensure the request was successful
-    if r['success']:
-        for i in r['faces']:
-            print(i)
-    else:
-        print('Request failed')
- 
-    print(time.time() - start_time)
-    return render_template('about.html')
-
-
-@app.route('/about')
-def about():
-    return render_template('about.html')
-
-@app.route('/contact')
-def contact():
-    return render_template('contact.html')
-
-@app.route('/old_index', methods=['GET', 'POST'])
 def upload_file():
     if request.method=='POST':
         # check if the post request has the file part
@@ -241,7 +193,7 @@ if __name__=='__main__':
     # init process pool
     #--------- RUN WEB APP SERVER ------------#
     # Start the app server on port 5000
-    hosts = ['127.0.0.1', '192.168.1.10']
-    app.run(host=hosts[0], port=5000, debug=True)
+    #app.run(host='127.0.0.1', port=5000, debug=True)
+    app.run(host='192.168.1.10', port=5000, debug=True)
 
 

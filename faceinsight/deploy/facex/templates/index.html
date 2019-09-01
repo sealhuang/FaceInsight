@@ -1,0 +1,29 @@
+{% extends "layout.html" %}
+{% block content %}
+    <title>FaceX</title>
+    <br>
+    <h2>FaceX - Personality from Face</h2>
+
+    <form method=post enctype=multipart/form-data >
+        <h4>Select a Face Image to Infer:</h4>
+        <input id='src' type=file name=file>
+	<img id='target' width='300'/>
+	<br>
+        <input type=submit value=Upload>
+    </form>
+    
+    <script type="text/javascript">
+        function showImage(src,target) {
+          var fr=new FileReader();
+          fr.onload = function(e) { target.src = this.result; };
+          src.addEventListener("change",function() {
+          fr.readAsDataURL(src.files[0]);
+          });
+        }
+
+        var src = document.getElementById("src");
+        var target = document.getElementById("target");
+        showImage(src,target);
+    </script>
+
+{% endblock %}
