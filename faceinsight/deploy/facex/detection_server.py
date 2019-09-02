@@ -33,7 +33,7 @@ def get_square_crop_box(crop_box, box_scalar=1.0):
 def crop_face(img, minsize, scalar, image_size,
               detect_multiple_faces=False, device='cpu'):
     """Crop and align faces."""
-    print('Crop face from image ...')
+    #print('Crop face from image ...')
     bounding_boxes, _ = detect_faces(img, min_face_size=minsize,
                                      device=device)
     nrof_faces = len(bounding_boxes)
@@ -120,8 +120,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER, mode=0o755)
 
-#root_dir = '/home/huanglj/repo/FaceInsight/faceinsight'
-root_dir = '/Users/sealhuang/repo/FaceInsight/faceinsight'
+root_dir = ROOT_DIR
 DEVICE = 'cpu'
 
 @app.route('/predict', methods=['POST'])
@@ -160,10 +159,8 @@ def predict():
 
 
 if __name__=='__main__':
-    # init process pool
     #--------- RUN WEB APP SERVER ------------#
     # Start the app server on port 5002
-    hosts = ['127.0.0.1', '192.168.1.10']
-    app.run(host=hosts[0], port=5002, debug=True)
+    app.run(host=DET_URL, port=5002, debug=True)
 
 

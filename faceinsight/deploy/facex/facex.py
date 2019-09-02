@@ -12,45 +12,10 @@ from werkzeug.utils import secure_filename
 
 from config import *
 
-from utils import ShuffleFaceNet
-from utils import crop_face
-from utils import align_face
-from utils import load_img
-
 
 def allowed_file(filename):
     return '.' in filename and \
             filename.rsplit('.', 1)[1].lower() in ALLOW_EXTENSIONS
-
-def _eval(model, face_data):
-    out = model(face_data)
-    out = out.cpu().data.numpy()[0][1]
-    return out
-
-class Predictor():
-    def __init__(self, factor, model_dir, device):
-        self.factor_name = factor
-        self.device = device
-        # load models
-        self.models = []
-        for i in range(5):
-            model_file_prefix = 'finetuned_shufflenet4%s_'%(factor.lower())
-            file_list = os.listdir(model_dir)
-            backbone_file = [os.path.join(model_dir, item) for item in file_list
-                    if item.startswith(model_file_prefix+'backbone_f%s'%(i))][0]
-            clfier_file = [os.path.join(model_dir, item) for item in file_list
-                    if item.startswith(model_file_prefix+'clfier_f%s'%(i))][0]
-            self.models.append(ShuffleFaceNet(backbone_file, clfier_file,
-                                              device))
-
-    def run(self, face_data):
-        outs = []
-        if self.device=='gpu':
-            face_data = face_data.cuda()
-        for model in self.models:
-            outs.append(_eval(model, face_data))
-
-        return {self.factor_name: np.median(outs)}
 
 def read_personality_info(info_file):
     """Read personality info of 16PF"""
@@ -79,7 +44,7 @@ def radarplot(data_dict):
                                   name='ref'))
 
     fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0,1])),
-                      showlegend=False)
+                      showlegend=False, width=400, height=400)
     fig_json = fig.to_json()
     return fig_json
 
@@ -93,42 +58,14 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER, mode=0o755)
 
-#root_dir = '/home/huanglj/repo/FaceInsight/faceinsight'
-root_dir = '/Users/sealhuang/repo/FaceInsight/faceinsight'
-model_dir = os.path.join(root_dir, 'proj', 'facetraits',
-                         '16pfmodels_shufflefacenet')
-pf16info_file = os.path.join(root_dir, 'proj','facetraits',
+pf16info_file = os.path.join(ROOT_DIR, 'proj','facetraits',
                              'personality16info.csv') 
-DEVICE_DET = 'cpu'
-DEVICE_CLS = 'cpu'
 
 # load personality info
 info16 = read_personality_info(pf16info_file)
 
-# get predictors
-#FACTORS = {'A': '乐群性*',
-#           'B': '聪慧性',
-#           'C': '稳定性',
-#           'E': '恃强性',
-#           'F': '兴奋性*',
-#           'G': '有恒性',
-#           'H': '敢为性*',
-#           'I': '敏感性*',
-#           'L': '怀疑性*',
-#           'M': '幻想性',
-#           'N': '世故性*',
-#           'O': '忧虑性',
-#           'Q1': '实验性',
-#           'Q2': '独立性*',
-#           'Q3': '自律性*',
-#           'Q4': '紧张性'}
-FACTORS = {'A': '乐群性'}
-
-
-# load predictor for each personality factor
-predictors = []
-for factor in FACTORS:
-    predictors.append(Predictor(factor, model_dir, DEVICE_CLS))
+def infer_wrapper(url, port, f):
+    return requests.post('http://%s:%s/predict'%(url, port), files=f).json()
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -157,21 +94,34 @@ def index():
 def inference(filename):
     start_time = time.time()
     
-    # 1. face detection
+    # face detection
     image = open(os.path.join(app.config['UPLOAD_FOLDER'],filename),'rb').read()
     payload = {'image': image}
     # submit the request
-    r = requests.post('http://127.0.0.1:5002/predict', files=payload).json()
+    r = requests.post('http://%s:5002/predict'%(DET_URL), files=payload).json()
     # ensure the request was successful
     if r['success']:
-        for i in r['faces']:
-            print(i)
+        face_img = r['faces'][0]
+        # facial personality inference
+        image = open(os.path.join(app.config['UPLOAD_FOLDER'], face_img),
+                     'rb').read()
+        payload = {'image': image}
+        # submit the request
+        r = requests.post('http://%s:5003/predict'%(INF_URL),
+                          files=payload).json()
+        if r['success']:
+            radar_json = radarplot(r['scores'])
+            print(time.time() - start_time)
+            return render_template('uploaded.html',
+                                   plotly_data=radar_json,
+                                   info_dict=info16,
+                                   filename=face_img)
+        else:
+            print('Request failed.')
+            return render_template('index.html')
     else:
-        print('Request failed')
- 
-    print(time.time() - start_time)
-    return render_template('about.html')
-
+        print('Request failed or no face deteced.')
+        return render_template('index.html')
 
 @app.route('/about')
 def about():
@@ -181,67 +131,10 @@ def about():
 def contact():
     return render_template('contact.html')
 
-@app.route('/old_index', methods=['GET', 'POST'])
-def upload_file():
-    if request.method=='POST':
-        # check if the post request has the file part
-        if 'file' not in request.files:
-            flash('No file part')
-            return redirect(request.url)
-        f = request.files['file']
-        # if user does not select file, browser also
-        # submit an empty part without filename
-        if f.filename=='':
-            flash('No selected file')
-            return redirect(request.url)
-        if f and allowed_file(f.filename):
-            start_time = time.time()
-            filename = secure_filename(f.filename)
-            filename = str(int(time.time())) +'.' + filename.split('.')[-1]
-            saved_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            f.save(saved_path)
-            #return redirect(url_for('uploaded_file', filename=filename))
-            # crop face
-            crop_face_file = crop_face(saved_path, app.config['UPLOAD_FOLDER'],
-                                       50, 1.4, 224,
-                                       detect_multiple_faces=False,
-                                       device=DEVICE_DET)
-            if crop_face_file:
-                aligned_face_file = align_face(crop_face_file, 224, 1.4)
-                if aligned_face_file:
-                    face_data = load_img(aligned_face_file)
-                    # eval
-                    scores = {}
-                    for predictor in predictors:
-                        res = predictor.run(face_data)
-                        scores.update(res)
-                    print(time.time()-start_time)
-                    radar_json = radarplot(scores)
-                    return render_template('result.html',
-                                           plotly_data=radar_json,
-                                           info_dict=info16,
-                                           imgpath=url_for('uploaded_file',
-                                filename=os.path.basename(aligned_face_file)))
-            else:
-                flash('No face detected')
-                return redirect(request.url)
-
-    return """
-    <!doctype html>
-    <title>Upload Face Image</title>
-    <h1>Upload Face Image</h1>
-    <form method=post enctype=multipart/form-data>
-      <input type=file name=file>
-      <input type=submit value=Upload>
-    </form>
-    """
-
 
 if __name__=='__main__':
-    # init process pool
     #--------- RUN WEB APP SERVER ------------#
     # Start the app server on port 5000
-    hosts = ['127.0.0.1', '192.168.1.10']
-    app.run(host=hosts[0], port=5000, debug=True)
+    app.run(host=APP_URL, port=5000, debug=True)
 
 
