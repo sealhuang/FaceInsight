@@ -142,3 +142,4 @@ def detect_faces(image, min_face_size=20.0, thresholds=[0.6, 0.7, 0.8],
     landmarks = landmarks[keep]
 
     return bounding_boxes, landmarks
+

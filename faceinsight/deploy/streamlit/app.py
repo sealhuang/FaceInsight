@@ -1,11 +1,20 @@
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 
-import streamlit as st
 import numpy as np
+import streamlit as st
 import cv2 as cv
+from PIL import Image
+
+from faceinsight.detection import detect_faces, show_bboxes
+from faceinsight.detection.align_trans import get_reference_facial_points
+from faceinsight.detection.align_trans import warp_and_crop_face
+
+
+# face detection apis
+
+
 
 st.title('Face Recognition Demo')
-
 
 @st.cache(allow_output_mutation=True)
 def get_cap():
@@ -14,10 +23,11 @@ def get_cap():
 cap = get_cap()
 
 frameST = st.empty()
-param=st.sidebar.slider('chose your value')
+#param=st.sidebar.slider('chose your value')
 
 while True:
     ret, frame = cap.read()
+
     # Stop the program if reached end of video
     if not ret:
         print("Done processing !!!")
@@ -26,7 +36,14 @@ while True:
         cap.release()
         break
 
-    frameST.image(frame, channels="BGR")
+    # BGR to RGB, and switch the left and right side
+    im = Image.fromarray(frame[:, ::-1, ::-1])
+    im = im.resize((im.width/2, im.heght/2))
+    # face detction
+    bounding_boxes, _ = detect_faces(im, min_face_size=50, device='cpu')
+    face_im = show_bboxes(im, bounding_boxes)
+
+    frameST.image(np.array(face_im), channels="RGB")
 
 #import time
 #
