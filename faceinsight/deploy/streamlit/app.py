@@ -178,9 +178,11 @@ while True:
         cap.release()
         break
 
+    # crop center square from 1280x960 image
+    frame = frame[:, 160:-160, :]
     # BGR to RGB, and switch the left and right side
     im = Image.fromarray(frame[:, ::-1, ::-1])
-    im = im.resize((int(im.width/2), int(im.height/2)))
+    im = im.resize((int(im.width/3), int(im.height/3)))
     # face detction
     bounding_boxes, _ = detect_faces(pnet, rnet, onet, im, min_face_size=50, device='cpu')
     face_im = show_bboxes(im, bounding_boxes)
@@ -239,7 +241,4 @@ while True:
 #        df['first column'])
 #
 #'You selected: ', option
-
-# vi: set ft=python sts=4 ts=4 sw=4 et:
-
 
