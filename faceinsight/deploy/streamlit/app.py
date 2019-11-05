@@ -38,7 +38,7 @@ while True:
 
     # BGR to RGB, and switch the left and right side
     im = Image.fromarray(frame[:, ::-1, ::-1])
-    im = im.resize((im.width/2, im.heght/2))
+    im = im.resize((int(im.width/2), int(im.height/2)))
     # face detction
     bounding_boxes, _ = detect_faces(im, min_face_size=50, device='cpu')
     face_im = show_bboxes(im, bounding_boxes)
