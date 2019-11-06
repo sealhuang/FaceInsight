@@ -12,7 +12,7 @@ import numpy as np
 from PIL import Image
 from scipy import misc
 
-from faceinsight.detection import detect_faces
+from faceinsight.detection import MTCNNDetector
 from faceinsight.io.dataset import get_dataset
 
 
@@ -45,8 +45,9 @@ def worker(image_path, output_class_dir, args):
             errorMessage = '{}: {}'.format(image_path, e)
             print(errorMessage)
         else:
-            bounding_boxes, _ = detect_faces(img, min_face_size=minsize,
-                                             device=args.mode)
+            detector = MTCNNDetector(device=args.mode)
+            bounding_boxes, _ = detector.infer(img, min_face_size=minsize)
+
             nrof_faces = len(bounding_boxes)
             if nrof_faces>0:
                 det = bounding_boxes[:, 0:4]

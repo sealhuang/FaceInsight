@@ -9,7 +9,7 @@ from PIL import Image
 
 from flask import Flask, request, jsonify
 
-from faceinsight.detection import detect_faces
+from faceinsight.detection import MTCNNDetector
 from faceinsight.detection.align_trans import get_reference_facial_points
 from faceinsight.detection.align_trans import warp_and_crop_face
 
@@ -34,8 +34,8 @@ def crop_face(img, minsize, scalar, image_size,
               detect_multiple_faces=False, device='cpu'):
     """Crop and align faces."""
     #print('Crop face from image ...')
-    bounding_boxes, _ = detect_faces(img, min_face_size=minsize,
-                                     device=device)
+    detector = MTCNNDetector(device=device)
+    bounding_boxes, _ = detector.infer(img, min_face_size=minsize)
     nrof_faces = len(bounding_boxes)
     if nrof_faces>0:
         det = bounding_boxes[:, 0:4]
@@ -87,8 +87,7 @@ def crop_face(img, minsize, scalar, image_size,
             offset = image_size * (scalar - 1.1) / 2
             reference = get_reference_facial_points(default_square=True)*scale \
                         + offset
-            _, landmarks = detect_faces(new_img, min_face_size=image_size/2,
-                                        device='cpu')
+            _, landmarks = detector.infer(new_img, min_face_size=image_size/2)
             # If the landmarks cannot be detected, the img will be discarded
             if len(landmarks)==0: 
                 print('The face is discarded due to non-detected landmarks!')

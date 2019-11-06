@@ -12,23 +12,15 @@ from .box_utils import nms, calibrate_box, get_image_boxes, convert_to_square
 from .first_stage import run_first_stage
 
 
-class MTCNN_Detector(object):
+class MTCNNDetector(object):
     """MTCNN face detector."""
     
-    def __init__(self, min_face_size=20.0, thresholds=[0.6, 0.7, 0.8],
-                 nms_thresholds=[0.7, 0.7, 0.7], device='cpu'):
+    def __init__(self, device='cpu'):
         """Arguments:
-            min_face_size: a float number.
-            thresholds: a list of length 3.
-            nms_thresholds: a list of length 3.
             device: cpu or gpu.
         """
         # device config
         #device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-        # load models
-        self.min_face_size = min_face_size
-        self.thresholds = thresholds
-        self.nms_thresholds = nms_thresholds
         self.device = device
 
         # load model
@@ -41,9 +33,13 @@ class MTCNN_Detector(object):
             self.onet = self.onet.cuda()    
         self.onet.eval()
 
-    def infer(self, image):
+    def infer(self, image, min_face_size=20.0,
+              thresholds=[0.6, 0.7, 0.8], nms_thresholds=[0.7, 0.7, 0.7]):
         """Arguments:
-        image: an instance of PIL.Image.
+            image: an instance of PIL.Image.
+            min_face_size: a float number.
+            thresholds: a list of length 3.
+            nms_thresholds: a list of length 3.
 
         Returns:
             two float numpy arrays of shapes [n_boxes, 4] and [n_boxes, 10],
@@ -62,7 +58,7 @@ class MTCNN_Detector(object):
         # scales the image so that
         # minimum size that we can detect equals to
         # minimum face size that we want to detect
-        m = min_detection_size/self.min_face_size
+        m = min_detection_size/min_face_size
         min_length *= m
 
         factor_count = 0
@@ -78,7 +74,8 @@ class MTCNN_Detector(object):
 
         # run P-Net on different scales
         for s in scales:
-            boxes = run_first_stage(image, self.pnet, scale=s, threshold=self.thresholds[0],
+            boxes = run_first_stage(image, self.pnet, scale=s,
+                                    threshold=thresholds[0],
                                     device=self.device)
             bounding_boxes.append(boxes)
 
@@ -89,7 +86,7 @@ class MTCNN_Detector(object):
         else:
             return [], []
 
-        keep = nms(bounding_boxes[:, 0:5], self.nms_thresholds[0])
+        keep = nms(bounding_boxes[:, 0:5], nms_thresholds[0])
         bounding_boxes = bounding_boxes[keep]
 
         # use offsets predicted by pnet to transform bounding boxes
@@ -110,12 +107,12 @@ class MTCNN_Detector(object):
         offsets = output[0].cpu().data.numpy()  # shape [n_boxes, 4]
         probs = output[1].cpu().data.numpy()  # shape [n_boxes, 2]
 
-        keep = np.where(probs[:, 1] > self.thresholds[1])[0]
+        keep = np.where(probs[:, 1] > thresholds[1])[0]
         bounding_boxes = bounding_boxes[keep]
         bounding_boxes[:, 4] = probs[keep, 1].reshape((-1, ))
         offsets = offsets[keep]
 
-        keep = nms(bounding_boxes, self.nms_thresholds[1])
+        keep = nms(bounding_boxes, nms_thresholds[1])
         bounding_boxes = bounding_boxes[keep]
         bounding_boxes = calibrate_box(bounding_boxes, offsets[keep])
         bounding_boxes = convert_to_square(bounding_boxes)
@@ -135,7 +132,7 @@ class MTCNN_Detector(object):
         offsets = output[1].cpu().data.numpy()  # shape [n_boxes, 4]
         probs = output[2].cpu().data.numpy()  # shape [n_boxes, 2]
 
-        keep = np.where(probs[:, 1] > self.thresholds[2])[0]
+        keep = np.where(probs[:, 1] > thresholds[2])[0]
         bounding_boxes = bounding_boxes[keep]
         bounding_boxes[:, 4] = probs[keep, 1].reshape((-1, ))
         offsets = offsets[keep]
@@ -151,7 +148,7 @@ class MTCNN_Detector(object):
                              np.expand_dims(height, 1) * landmarks[:, 5:10]
 
         bounding_boxes = calibrate_box(bounding_boxes, offsets)
-        keep = nms(bounding_boxes, self.nms_thresholds[2], mode='min')
+        keep = nms(bounding_boxes, nms_thresholds[2], mode='min')
         bounding_boxes = bounding_boxes[keep]
         landmarks = landmarks[keep]
 

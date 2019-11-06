@@ -1,2 +1,2 @@
-from .detector import MTCNN_Detector
+from .detector import MTCNNDetector
 from .visualization_utils import show_bboxes
