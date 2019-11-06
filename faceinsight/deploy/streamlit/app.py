@@ -158,16 +158,18 @@ while True:
     im = Image.fromarray(frame[:, ::-1, ::-1])
     im = im.resize((int(im.width/2), int(im.height/2)))
     # face detction
-    #bounding_boxes, _ = detector.infer(im, min_face_size=80)
-    bounding_boxes, faces = crop_face(im, minsize=80, scalar=1.2,
-                                      image_size=227, face_detector=detector)
+    bounding_boxes, _ = detector.infer(im, min_face_size=80)
     face_im = show_bboxes(im, bounding_boxes)
     face_im = np.array(face_im)
+    frameST.image(face_im, channels="RGB")
 
     # gender and age
     font = cv.FONT_HERSHEY_SIMPLEX
-    if len(faces)>0 and (time.time()-last_time>5):
+    if (time.time()-last_time)>3:
         last_time = time.time()
+        bounding_boxes, faces = crop_face(im, minsize=80, scalar=1.2,
+                                          image_size=227,
+                                          face_detector=detector)
         #print("Found {} faces".format(str(len(faces))))
         for i in range(len(faces)):
             blob = cv.dnn.blobFromImage(faces[i][:, :, ::-1], 1, (227, 227),
@@ -190,7 +192,6 @@ while True:
                        font, 1, (255, 255, 255), 2, cv.LINE_AA)
         faceST.image(face_im, channels="RGB")
 
-    frameST.image(face_im, channels="RGB")
 
 #import time
 #
