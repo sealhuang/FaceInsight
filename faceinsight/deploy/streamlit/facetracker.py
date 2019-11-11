@@ -35,18 +35,18 @@ class TrackableFace():
         self.gender_probs = None
         self.emotions = []
 
-    def update_img(self, img):
-        self.img = img
+    def update_img(self, face_img):
+        self.img = face_img
 
     def update_age(self, age_probs):
         if isinstance(self.age_probs, np.ndarray):
-            self.age_probs = 0.7 * self.age_probs + 0.3 * age_probs
+            self.age_probs = 0.5 * self.age_probs + 0.5 * age_probs
         else:
             self.age_probs = age_probs
 
     def update_gender(self, gender_probs):
         if isinstance(self.gender_probs, np.ndarray):
-            self.gender_probs = 0.7 * self.gender_probs + 0.3 * gender_probs
+            self.gender_probs = 0.5 * self.gender_probs + 0.5 * gender_probs
         else:
             self.gender_probs = gender_probs
 
@@ -132,12 +132,10 @@ class FaceTracker():
             # match an input face to a tracked face
             R = corrcoef2(tracked_features, face_features)
 
-            # in order to perform this matching we must (1) set the small
-            # enough r value to zero, (2) find the largest value in each 
-            # row and then (3) sort the row indexes based on their maxmium
-            # values so that the row with the largest value is at the *front*
-            # of the index list
-            R[R<0.2] = 0
+            # in order to perform this matching we must (1) find the largest
+            # value in each row and then (2) sort the row indexes based on
+            # their maxmium values so that the row with the largest value is
+            # at the *front* of the index list
             rows = R.max(axis=1).argsort()[::-1]
 
             # next, we find the column index of the largest value in each row
@@ -156,54 +154,82 @@ class FaceTracker():
                 if row in usedRows or col in usedCols:
                     continue
 
-                # otherwise, grab the face ID for the current row,
-                # update its new info, and reset the disappeared counter
-                sel_id = face_ids[row]
-                self.faces[sel_id].face_feat = face_features[col]
-                if len(genders):
-                    self.faces[sel_id].update_gender(genders[col])
-                if len(ages):
-                    self.faces[sel_id].update_age(ages[col])
-                self.disappeared[sel_id] = 0
+                # check the similarity between tracked face and the input
+                # if they are same
+                if R[row, col]>0.5:
+                    # grab the face ID for the current row, update its new
+                    # info, and reset the disappeared counter
+                    sel_id = face_ids[row]
+                    self.faces[sel_id].face_feat = face_features[col]
+                    self.faces[sel_id].update_img(face_imgs[col])
+                    if len(genders):
+                        self.faces[sel_id].update_gender(genders[col])
+                    if len(ages):
+                        self.faces[sel_id].update_age(ages[col])
+                    self.disappeared[sel_id] = 0
 
-                # indicate that we have examined each of the row and
-                # column indexes, respectively
-                usedRows.add(row)
-                usedCols.add(col)
+                    # indicate that we have examined each of the row and
+                    # column indexes, respectively
+                    usedRows.add(row)
+                    usedCols.add(col)
  
             # compute both the row and column index we have NOT yet examined
             unusedRows = set(range(0, R.shape[0])).difference(usedRows)
             unusedCols = set(range(0, R.shape[1])).difference(usedCols)
 
-            # in the event that the number of tracked face features is
-            # equal or greater than the number of input face features
+            # for unused row index (we does not find the face in new frame),
             # we need to check and see if some of these faces have
             # potentially disappeared
-            if R.shape[0] >= R.shape[1]:
-                # loop over the unused row indexes
-                for row in unusedRows:
-                    # grab the face ID for the corresponding row
-                    # index and increment the disappeared counter
-                    sel_id = face_ids[row]
-                    self.disappeared[sel_id] += 1
+            for row in unusedRows:
+                # grab the face ID for the corresponding row
+                # index and increment the disappeared counter
+                sel_id = face_ids[row]
+                self.disappeared[sel_id] += 1
 
-                    # check to see if the number of consecutive
-                    # frames the face has been marked "disappeared"
-                    # for warrants deregistering the face
-                    if self.disappeared[sel_id] > self.max_disappeared:
-                        self.deregister(sel_id)
+                # check to see if the number of consecutive
+                # frames the face has been marked "disappeared"
+                # for warrants deregistering the face
+                if self.disappeared[sel_id] > self.max_disappeared:
+                    self.deregister(sel_id)
 
-            # otherwise, if the number of input faces is greater
-            # than the number of existing faces we need to
-            # register each new input face as a trackable object
-            else:
-                for col in unusedCols:
-                    current_id = self.register(face_imgs[col],
-                                               face_features[col])
-                    if len(genders):
-                        self.faces[current_id].update_gender(genders[col])
-                    if len(ages):
-                        self.faces[current_id].update_age(ages[col])
+            # for unused column index (maybe new face appears),
+            # we need to register each new input face as a trackable object
+            for col in unusedCols:
+                current_id = self.register(face_imgs[col], face_features[col])
+                if len(genders):
+                    self.faces[current_id].update_gender(genders[col])
+                if len(ages):
+                    self.faces[current_id].update_age(ages[col])
+
+            ## in the event that the number of tracked face features is
+            ## equal or greater than the number of input face features
+            ## we need to check and see if some of these faces have
+            ## potentially disappeared
+            #if R.shape[0] >= R.shape[1]:
+            #    # loop over the unused row indexes
+            #    for row in unusedRows:
+            #        # grab the face ID for the corresponding row
+            #        # index and increment the disappeared counter
+            #        sel_id = face_ids[row]
+            #        self.disappeared[sel_id] += 1
+
+            #        # check to see if the number of consecutive
+            #        # frames the face has been marked "disappeared"
+            #        # for warrants deregistering the face
+            #        if self.disappeared[sel_id] > self.max_disappeared:
+            #            self.deregister(sel_id)
+
+            ## otherwise, if the number of input faces is greater
+            ## than the number of existing faces we need to
+            ## register each new input face as a trackable object
+            #else:
+            #    for col in unusedCols:
+            #        current_id = self.register(face_imgs[col],
+            #                                   face_features[col])
+            #        if len(genders):
+            #            self.faces[current_id].update_gender(genders[col])
+            #        if len(ages):
+            #            self.faces[current_id].update_age(ages[col])
 
         # return the set of trackable faces
         return self.faces

@@ -192,6 +192,7 @@ while True:
             multitracker.add(cv.TrackerCSRT_create(), np.array(im), roi)
 
         # init face info
+        faces = []
         features = []
         genders = []
         ages = []
@@ -220,7 +221,7 @@ while True:
                 
         # update face tracker
         ft.update(faces, features, genders, ages)
-        faces_imgs = np.ones((10, 10, 3)) * 255
+        faces_img = np.ones((10, 10, 3))
         if len(ft.faces):
             face_ids = list(ft.faces.keys())
             faces_img = [np.array(ft.faces[sel_id].img)
@@ -229,15 +230,15 @@ while True:
             for face_id in face_ids:
                 i = face_ids.index(face_id)
                 cv.putText(faces_img,
-                           'ID%s: %s'%(face_id, ft.faces[face_id].gender()),
-                           (227*i, 30),
-                           cv.FONT_HERSHEY_SIMPLEX,
-                           1,
-                           (255, 255, 255),
-                           2,
-                           cv.LINE_AA)
+                           'ID %s: %s'%(face_id, ft.faces[face_id].gender()),
+                           (227*i, 22), cv.FONT_HERSHEY_SIMPLEX,
+                           0.7, (255, 0, 0), 2, cv.LINE_AA)
+                cv.putText(faces_img,
+                           '%s'%(ft.faces[face_id].age()),
+                           (227*i, 50), cv.FONT_HERSHEY_SIMPLEX,
+                           0.7, (255, 0, 0), 2, cv.LINE_AA)
 
-            face_slot.image(faces_img, channels='RGB')
+        face_slot.image(faces_img, channels='RGB')
 
         face_im = show_bboxes(im, bounding_boxes)
         frame_slot.image(np.array(face_im), channels="RGB")
