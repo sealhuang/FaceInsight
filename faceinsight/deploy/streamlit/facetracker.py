@@ -201,36 +201,6 @@ class FaceTracker():
                 if len(ages):
                     self.faces[current_id].update_age(ages[col])
 
-            ## in the event that the number of tracked face features is
-            ## equal or greater than the number of input face features
-            ## we need to check and see if some of these faces have
-            ## potentially disappeared
-            #if R.shape[0] >= R.shape[1]:
-            #    # loop over the unused row indexes
-            #    for row in unusedRows:
-            #        # grab the face ID for the corresponding row
-            #        # index and increment the disappeared counter
-            #        sel_id = face_ids[row]
-            #        self.disappeared[sel_id] += 1
-
-            #        # check to see if the number of consecutive
-            #        # frames the face has been marked "disappeared"
-            #        # for warrants deregistering the face
-            #        if self.disappeared[sel_id] > self.max_disappeared:
-            #            self.deregister(sel_id)
-
-            ## otherwise, if the number of input faces is greater
-            ## than the number of existing faces we need to
-            ## register each new input face as a trackable object
-            #else:
-            #    for col in unusedCols:
-            #        current_id = self.register(face_imgs[col],
-            #                                   face_features[col])
-            #        if len(genders):
-            #            self.faces[current_id].update_gender(genders[col])
-            #        if len(ages):
-            #            self.faces[current_id].update_age(ages[col])
-
         # return the set of trackable faces
         return self.faces
 
