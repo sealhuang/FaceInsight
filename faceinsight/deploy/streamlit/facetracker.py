@@ -8,6 +8,8 @@ from collections import OrderedDict
 GENDER_LIST = ['Male', 'Female']
 AGE_LIST = ['(0, 2)', '(4, 6)', '(8, 12)', '(15, 20)', '(25, 32)',
             '(38, 43)', '(48, 53)', '(60, 100)']
+EMOTION_TABLE = {0: 'Neutral', 1: 'Happiness', 2: 'Surprise', 3: 'Sadness',
+                 4: 'Anger', 5: 'Disgust', 6: 'Fear', 7: 'Contemp'}
 
 def corrcoef2(A, B):
     """Row-wise Correlation Coefficient calculation for two 2D arrays.
@@ -50,8 +52,8 @@ class TrackableFace():
         else:
             self.gender_probs = gender_probs
 
-    def update_emotion(self, emotion_probs):
-        self.emotions.append(emotion_probs)
+    def update_emotion(self, emotion_idx):
+        self.emotions.append(EMOTION_TABLE[emotion_idx])
 
     def age(self):
         return AGE_LIST[self.age_probs.argmax()]
@@ -60,7 +62,7 @@ class TrackableFace():
         return GENDER_LIST[self.gender_probs.argmax()]
 
     def emotion(self):
-        pass
+        return self.emotions[-1]
 
 
 class FaceTracker():
@@ -94,7 +96,8 @@ class FaceTracker():
         del self.faces[face_id]
         del self.disappeared[face_id]
 
-    def update(self, face_imgs, face_features, genders=[], ages=[]):
+    def update(self, face_imgs, face_features, genders=[],
+               ages=[], emotions=[]):
         # check to see if the array of input face features is empty
         if len(face_features)==0:
             # loop over any existing tracked faces and mark them as disappeared
@@ -118,6 +121,8 @@ class FaceTracker():
                     self.faces[current_id].update_gender(genders[i])
                 if len(ages):
                     self.faces[current_id].update_age(ages[i])
+                if len(emotions):
+                    self.faces[current_id].update_emotion(emotions[i])
 
         # otherwise, we are currently tracking faces so we need to
         # try to match the input face features to existing faces'
@@ -166,6 +171,8 @@ class FaceTracker():
                         self.faces[sel_id].update_gender(genders[col])
                     if len(ages):
                         self.faces[sel_id].update_age(ages[col])
+                    if len(emotions):
+                        self.faces[sel_id].update_emotion(emotions[col])
                     self.disappeared[sel_id] = 0
 
                     # indicate that we have examined each of the row and
@@ -200,6 +207,8 @@ class FaceTracker():
                     self.faces[current_id].update_gender(genders[col])
                 if len(ages):
                     self.faces[current_id].update_age(ages[col])
+                if len(emotions):
+                    self.faces[current_id].update_emotion(emotions[col])
 
         # return the set of trackable faces
         return self.faces
