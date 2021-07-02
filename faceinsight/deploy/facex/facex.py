@@ -111,11 +111,62 @@ def inference(filename):
                           files=payload).json()
         if r['success']:
             radar_json = radarplot(r['scores'])
+            # compute 2nd-order factor score
+            wts = {
+                '适应与焦虑性': {
+                    'OFFSET': 3.8,
+                    'L': 2,
+                    'O': 3,
+                    'Q4': 4,
+                    'C': -2,
+                    'H': -2,
+                    'Q3': -2,
+                },
+                '内外向性': {
+                    'OFFSET': -1.1,
+                    'A': 2,
+                    'E': 3,
+                    'F': 4,
+                    'H': 5,
+                    'Q2': -2,
+                },
+                '感情用事与安详机警性': {
+                    'OFFSET': 7.7,
+                    'C': 2,
+                    'E': 2,
+                    'F': 2,
+                    'N': 2,
+                    'A': -4,
+                    'I': -6,
+                    'M': -2,
+                },
+                '怯懦与果敢性': {
+                    'E': 4,
+                    'M': 3,
+                    'Q1': 4,
+                    'Q2': 4,
+                    'A': -3,
+                    'G': -2,
+                },
+            }
+            factors_2nd = {}
+            for fname in wts:
+                _v = 0
+                for fidx in wts[fname]:
+                    if fidx in r['scores']:
+                        _v += r['scores'][fidx]*wts[fname][fidx]
+                    else:
+                        _v += wts[fname][fidx]
+                factors_2nd[fname] = _v
+
             print(time.time() - start_time)
-            return render_template('uploaded.html',
-                                   plotly_data=radar_json,
-                                   info_dict=info16,
-                                   filename=face_img)
+            return render_template(
+                'uploaded.html',
+                factors_2nd = factors_2nd,            
+                plotly_data=radar_json,
+                info_dict=info16,
+                filename=face_img,
+            )
         else:
             print('Request failed.')
             return render_template('index.html')

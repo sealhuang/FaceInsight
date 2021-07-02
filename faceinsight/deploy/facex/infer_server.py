@@ -54,7 +54,12 @@ model_dir = os.path.join(ROOT_DIR, 'proj', 'facetraits',
 DEVICE = 'gpu'
 
 # load predictor for each personality factor
-FACTOR_LIST = ['A', 'E', 'F', 'H', 'I', 'L', 'N', 'O', 'Q2', 'Q3']
+FACTOR_LIST = [
+    'A', 'B', 'C', 'E',
+    'F', 'G', 'H', 'I',
+    'L', 'M', 'N', 'O',
+    'Q1', 'Q2', 'Q3', 'Q4',
+]
 predictors = []
 for factor in FACTOR_LIST:
     predictors.append(Predictor(factor, model_dir, DEVICE))
