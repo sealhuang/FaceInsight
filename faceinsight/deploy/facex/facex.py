@@ -23,8 +23,78 @@ def read_personality_info(info_file):
     info = [line.strip().split(':') for line in info]
     info_dict = {}
     for line in info:
-        info_dict[line[0]] = line[1]
+        contents = line[1].split('；')
+        info_dict[line[0]] = {
+            'high': contents[0]+'。',
+            'low': contents[1],
+        }
     return info_dict
+
+def get_global_factor_info():
+    global_factor_level = {
+        '适应与焦虑性': {
+            '1': [0, 2],
+            '2': [2, 4],
+            '3': [4, 6],
+            '4': [6, 8],
+            '5': [8, 10],
+        },
+        '内外向性': {
+            '1': [0, 2],
+            '2': [2, 4],
+            '3': [4, 6],
+            '4': [6, 8],
+            '5': [8, 10],
+
+        },
+        '感情用事与安详机警性': {
+            '1': [0, 2],
+            '2': [2, 4.5],
+            '3': [4.5, 5.5],
+            '4': [5.5, 8],
+            '5': [8, 10],
+        },
+        '怯懦与果敢性': {
+            '1': [0, 2],
+            '2': [2, 4],
+            '3': [4, 6],
+            '4': [6, 8],
+            '5': [8, 10],
+        },
+    }
+    global_factor_contents = {
+        '适应与焦虑性': {
+            '1': '对生活境遇适应性很强，但遇事容易知难而退，缺少艰苦奋斗的动力和毅力。',
+            '2': '对当前的生活比较适应，常感到心满意足，能做到所期望的及自认为重要的事情。',
+            '3': '对当前的生活比较适应，但仍对人生有更高的期待，能够较好的处理生活境遇与个人希望之间的心理落差，排解内心的焦虑。',
+            '4': '对当前的境遇有些不满意，遇到难事易激动，偶尔会感到焦虑。',
+            '5': '对生活所要求的和自己意欲达到的事情常感到不满意，容易焦虑，可能会影响工作状态和身体健康。',
+        },
+        '内外向性': {
+            '1': '非常内向，通常羞怯而审慎，沉默寡言，不愿与人打交道。',
+            '2': '偏内向，与人相处比较拘谨，常采取克制态度。',
+            '3': '中性人格，独处时感到自在，也喜欢与朋友聚餐聊天，需要团队合作时也可以很快与大家打成一片。',
+            '4': '偏外向，性格开朗，热情，活泼，适应环境能力强。',
+            '5': '非常外向，通常善于交际，与人相处感到能量充沛，不拘小节。',
+
+        },
+        '感情用事与安详机警性': {
+            '1': '感情丰富，容易产生情绪波动而感到困扰不安，遇到问题常摇摆不定，难做决定。',
+            '2': '感情较丰富，对生活中的细节较为含蓄敏感，性格温和，讲究生活艺术，遇事采取行动前会再三思考，顾虑太多。',
+            '3': '情绪较稳定，对现实情况有比较清醒的认识，可以较好的控制自己的感情，偶尔也会因为压抑而冲动地发泄情绪。',
+            '4': '富有专业心，安详警觉，果断刚毅，但常常过分现实，忽视了许多生活的情趣。',
+            '5': '富有进取精神，精力充沛，行动迅速，但有时会考虑不周，不计后果，贸然行事。',
+        },
+        '怯懦与果敢性': {
+            '1': '常人云亦云，个性被动，优柔寡断，受人驱使而不能独立。',
+            '2': '性格较懦弱，对他人有一定依赖性，会为获取别人的欢心，而常常迁就他人。',
+            '3': '对事物有自己的看法，在自己的专业领域有所为，面对强势也常选择明哲保身，隐藏自己的锋芒。',
+            '4': '比较果断独立，常常自动寻找可以施展所长的环境或机会，以充分表现自己的独创能力，并从中获益。',
+            '5': '性格果敢，有气魄，锋芒毕露，可能有攻击性倾向。',
+        },
+    }
+
+    return global_factor_level, global_factor_contents
 
 def radarplot(data_dict):
     """Plot Radar figure for results."""
@@ -58,11 +128,16 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER, mode=0o755)
 
-pf16info_file = os.path.join(ROOT_DIR, 'proj','facetraits',
-                             'personality16info.csv') 
-
 # load personality info
+pf16info_file = os.path.join(
+    ROOT_DIR,
+    'proj',
+    'facetraits',
+    'personality16info.csv',
+)
 info16 = read_personality_info(pf16info_file)
+global_factor_level, global_factor_contents = get_global_factor_info()
+
 
 def infer_wrapper(url, port, f):
     return requests.post('http://%s:%s/predict'%(url, port), files=f).json()
@@ -157,7 +232,16 @@ def inference(filename):
                         _v += r['scores'][fidx]*wts[fname][fidx]
                     else:
                         _v += wts[fname][fidx]
-                factors_2nd[fname] = _v
+                factors_2nd[fname] = {
+                    'value': _v,
+                }
+                level_ref = global_factor_level[fname]
+                contents_ref = global_factor_contents[fname]
+                for _l in level_ref:
+                    if _v >= level_ref[_l][0] and _v < level_ref[_l][1]:
+                        factors_2nd[fname]['level'] = _l
+                        factors_2nd[fname]['contents'] = contents_ref[_l]
+                        break
 
             print(time.time() - start_time)
             return render_template(

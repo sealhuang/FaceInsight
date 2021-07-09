@@ -6,40 +6,37 @@
 
 {% block content %}
     <title>FaceX - Personality from Face</title>
-    <h2>Personality from Face</h2>
-    <h3>综合评价结果</h3>
-    <div id='factors-2nd'>
-	{% for k in factors_2nd %}
-	    <h4> {{ k }}: {{ factors_2nd[k]}} </h4>
-	{% endfor %}
-    </div>
-    <br>
-    <div id='factor2nd-ref'>
-	<h4>适应与焦虑性</h4>
-	<p>低分者生活适应顺利，通常感觉心满意足，但极端低分者可能缺乏毅力，事事知难而退，不肯艰苦奋斗与努力。</p>
-	<p>高分者不一定有神经症，但通常易于激动、焦虑，对自己的境遇常常感到不满意；高度的焦虑不但减低工作的效率，而且也会影响身体的健康。<p>
-	<h4>内外向性</h4>
-	<p>低分者内向，通常羞怯而审慎，与人相处多拘谨不自然；</p>
-	<p>高分者外倾，通常善于交际，开朗，不拘小节。</p>
-	<h4>感情用事与安详机警性</h4>
-	<p>低分者感情丰富，情绪多困扰不安，通常感觉挫折气馁，遇问题需经反复考虑才能决定，平时较为含蓄敏感，讲究生活艺术。</p>
-	<p>高分者安详警觉，果断刚毅，进取精神，但常常过分现实，忽视了许多生活的情趣，遇到困难有时会不经考虑，不计后果，贸然行事。</p>
-	<h4>怯懦与果敢性</h4>
-	<p>低分者常人云亦云，优柔寡断，受人驱使而不能独立，依赖性强，因而事事迁就，以获取别人的欢心。</p>
-	<p>高分者独立、果敢、锋芒毕露，有气魄。常常自动寻找可以施展所长的环境或机会。</p>
-    </div>
-    <h3>各维度得分</h3>
-    <div style="text-align: center;"> 
-        <img src={{url_for('static', filename='uploads/'+filename)}} />
-    </div>
-    <div id='divPlotly' align="center">
-        <script>
-            Plotly.react('divPlotly', {{ plotly_data|safe }}.data, {{ plotly_data|safe }}.layout);
-        </script>
-    </div>
-    <div id='reference'>
-	{% for key in info_dict %}
-	    <h4> {{ key }}: </h4> {{ info_dict[key] }}
-	{% endfor %}
+    <div id='results'>
+        <h2>Personality from Face</h2>
+        <div id='global-factor'>
+            <h3>综合评价结果</h3>
+            <div style="text-align: center;"> 
+                <img src={{url_for('static', filename='uploads/'+filename)}} />
+            </div>
+            <div id='factors-2nd'>
+	    {% for k in factors_2nd %}
+	        <div id=k>
+	            <h4> {{ k }}: {{ factors_2nd[k]['value']}} </h4>
+		    <p>{{ factors_2nd[k]['contents'] }}</p>
+		</div>
+	    {% endfor %}
+            </div>
+        </div>
+        <br>
+	<div id='primary-factors'>
+            <h3>各维度得分</h3>
+            <div id='divPlotly' align="center">
+                <script>
+                    Plotly.react('divPlotly', {{ plotly_data|safe }}.data, {{ plotly_data|safe }}.layout);
+                </script>
+            </div>
+            <div id='reference'>
+	    {% for key in info_dict %}
+	        <h4> {{ key }}: </h4> 
+		<p>{{ info_dict[key]['high'] }}</p>
+		<p>{{ info_dict[key]['low'] }}</p>
+	    {% endfor %}
+            </div>
+        </div>
     </div>
 {% endblock %}
