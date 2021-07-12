@@ -138,6 +138,7 @@ pf16info_file = os.path.join(
 info16 = read_personality_info(pf16info_file)
 global_factor_level, global_factor_contents = get_global_factor_info()
 
+DISPLAY_FACTORS = ['A', 'E', 'F', 'H', 'I', 'L', 'N', 'O', 'Q2', 'Q3']
 
 def infer_wrapper(url, port, f):
     return requests.post('http://%s:%s/predict'%(url, port), files=f).json()
@@ -185,7 +186,18 @@ def inference(filename):
         r = requests.post('http://%s:5003/predict'%(INF_URL),
                           files=payload).json()
         if r['success']:
-            radar_json = radarplot(r['scores'])
+            # plot radar
+            sel_scores = {}
+            for k in r['scores']:
+                if k in DISPLAY_FACTORS:
+                    sel_scores[k] = r['scores'][k]
+            radar_json = radarplot(sel_scores)
+            # filter factor description
+            display_factor_info = {}
+            for k in DISPLAY_FACTORS:
+                _name = FACTORS[k].replace('*', '')
+                display_factor_info[_name] = info16[_name]
+
             # compute 2nd-order factor score
             wts = {
                 '适应与焦虑性': {
@@ -246,9 +258,9 @@ def inference(filename):
             print(time.time() - start_time)
             return render_template(
                 'uploaded.html',
-                factors_2nd = factors_2nd,            
+                factors_2nd = factors_2nd,
                 plotly_data=radar_json,
-                info_dict=info16,
+                info_dict=display_factor_info,
                 filename=face_img,
             )
         else:
