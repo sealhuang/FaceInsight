@@ -17,15 +17,15 @@ FACTORS = {'A': '乐群性*',
            'Q3': '自律性*',
            'Q4': '紧张性'}
 
-ROOT_DIR = '/home/huanglj/repo/FaceInsight/faceinsight'
-#ROOT_DIR = '/Users/sealhuang/repo/FaceInsight/faceinsight'
+#ROOT_DIR = '/home/huanglj/repo/FaceInsight/faceinsight'
+ROOT_DIR = '/Users/sealhuang/repo/FaceInsight/faceinsight'
 BASEPATH = '/tmp'
 UPLOAD_FOLDER = './static/uploads'
 ALLOW_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
 print('BASEPATH', BASEPATH)
 print('UPLOAD_FOLDER', UPLOAD_FOLDER)
 
-#APP_URL = '127.0.0.1'
-APP_URL = '192.168.16.218'
+#APP_URL = '192.168.16.218'
+APP_URL = '127.0.0.1'
 DET_URL = '127.0.0.1'
 INF_URL = '127.0.0.1'
