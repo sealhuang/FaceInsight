@@ -4,39 +4,52 @@
 	<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 {% endblock %}
 
+{% block navbar %}
+  {% include 'navbar.html' %}
+{% endblock %}}
+
 {% block content %}
-    <title>FaceX - Personality from Face</title>
-    <div id='results'>
-        <h2>Personality from Face</h2>
-        <div id='global-factor'>
-            <h3>综合评价结果</h3>
-            <div style="text-align: center;"> 
-                <img src={{url_for('static', filename='uploads/'+filename)}} />
-            </div>
-            <div id='factors-2nd'>
-	    {% for k in factors_2nd %}
-	        <div id=k>
-	            <h4> {{ k }}: {{ factors_2nd[k]['value']}} </h4>
-		    <p>{{ factors_2nd[k]['contents'] }}</p>
-		</div>
-	    {% endfor %}
-            </div>
-        </div>
-        <br>
-	<div id='primary-factors'>
-            <h3>各维度得分</h3>
-            <div id='divPlotly' align="center">
-                <script>
-                    Plotly.react('divPlotly', {{ plotly_data|safe }}.data, {{ plotly_data|safe }}.layout);
-                </script>
-            </div>
-            <div id='reference'>
-	    {% for key in info_dict %}
-	        <h4> {{ key }}: </h4> 
-		<p>{{ info_dict[key]['high'] }}</p>
-		<p>{{ info_dict[key]['low'] }}</p>
-	    {% endfor %}
-            </div>
-        </div>
+
+  <!-- Global factors -->
+  <div class="w3-row-padding w3-padding-64 w3-theme-l5" id="summary">
+    <div class="w3-col m1">
+      <p>  </p>
     </div>
+    <div class="w3-col m3">
+      <div class="w3-margin w3-padding-16">
+        <h2>TA的综合评价结果</h2>
+	<img src={{url_for('static', filename='uploads/'+filename)}} />
+      </div>
+    </div>
+    <div class="w3-col m6">
+      <div class="w3-padding-16">
+	{% for k in factors_2nd %}
+          <div id=k>
+            <!-- <h4> {{ k }}: {{ factors_2nd[k]['value']}} </h4> -->
+	    <h4> {{ k }}: </h4>
+            <p> {{ factors_2nd[k]['contents'] }} </p>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="w3-row-padding w3-padding-64 w3-theme-l1" id="primary">
+    <div class="w3-col m4">
+      <h2 align="center">各维度得分</h2>
+      <div id='divPlotly' align="center">
+        <script>Plotly.react('divPlotly', {{ plotly_data|safe }}.data, {{ plotly_data|safe }}.layout);</script>
+      </div>
+    </div>
+    <div class="w3-col m8">
+      <div id='reference'>
+        {% for key in info_dict %}
+	  <h4> {{ key }}: </h4> 
+	  <p>{{ info_dict[key]['high'] }}</p>
+	  <p>{{ info_dict[key]['low'] }}</p>
+	{% endfor %}
+      </div>
+    </div>
+  </div>
+
 {% endblock %}
