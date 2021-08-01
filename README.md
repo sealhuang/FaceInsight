@@ -3,6 +3,7 @@
 ## Contents
 * [Introduction](#Introduction)
 * [Pre-Requisites](#Pre-Requisites)
+* [Repo-Structure](#Repo-Structure)
 
 ****
 ### Introduction 
@@ -26,7 +27,7 @@ This repo provides some face-related applications and a comprehensive face recog
 While not required, for optimal performance it is **highly** recommended to run the code using a CUDA enabled GPU.
 
 ****
-### Repo-structure
+### Repo-Structure
 
 * The source code of `facenality` is in `faceinsight/deploy/facex`
 
