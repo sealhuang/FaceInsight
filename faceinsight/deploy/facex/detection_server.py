@@ -5,7 +5,7 @@ import io
 import time
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageOps
 
 from flask import Flask, request, jsonify
 
@@ -135,6 +135,8 @@ def predict():
             image = request.files['image'].read()
             try:
                 img = Image.open(io.BytesIO(image)).convert('RGB')
+                # XXX: transpose image using exif inform
+                img = ImageOps.exif_transpose(img)
             except (IOError, ValueError, IndexError) as e:
                 print('Image loading error: {}'.format(e))
             else:

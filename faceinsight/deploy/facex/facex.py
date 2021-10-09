@@ -265,10 +265,10 @@ def inference(filename):
             )
         else:
             print('Request failed.')
-            return render_template('index.html')
+            return redirect(url_for('index'))
     else:
         print('Request failed or no face deteced.')
-        return render_template('index.html')
+        return redirect(url_for('index'))
 
 @app.route('/about')
 def about():
